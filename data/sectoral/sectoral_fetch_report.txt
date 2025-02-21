@@ -1,0 +1,10 @@
+✅ Sectoral Data Saved: data/sectoral/NIFTY_IT_historical.csv
+⚠️ No data found for NIFTY_PHARMA
+⚠️ No data found for NIFTY_BANK
+✅ Sectoral Data Saved: data/sectoral/NIFTY_AUTO_historical.csv
+✅ Sectoral Data Saved: data/sectoral/NIFTY_FMCG_historical.csv
+NIFTY_IT Live Price: 42921.6484375
+NIFTY_PHARMA Live Price: 22077.0
+❌ Error fetching live price for NIFTY_BANK: single positional indexer is out-of-bounds
+NIFTY_AUTO Live Price: 23459.94921875
+NIFTY_FMCG Live Price: 55113.30078125

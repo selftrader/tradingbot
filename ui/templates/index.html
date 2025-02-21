@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Autonomous Trading Bot Dashboard</title>
+    <script src="https://cdn.socket.io/4.5.1/socket.io.min.js"
+        crossorigin="anonymous"></script>
+
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; }
+      .section { margin-bottom: 40px; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { border: 1px solid #ddd; padding: 8px; }
+      th { background-color: #f2f2f2; }
+      button { padding: 10px 20px; margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Autonomous Trading Bot Dashboard</h1>
+    
+    <!-- Bot control buttons -->
+    <div class="section">
+        <button id="start-bot-btn">Start Bot</button>
+        <button id="stop-bot-btn">Stop Bot</button>
+    </div>
+    
+    <div class="section">
+        <h2>Trade History</h2>
+        <table id="trade-history-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Signal</th>
+                    <th>Order IDs</th>
+                    <th>Result</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Trade history rows will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="section">
+        <h2>Bot Activity & Logs</h2>
+        <pre id="logs"></pre>
+    </div>
+    
+    <script>
+        var socket = io();
+
+        // Add event listeners to the buttons.
+        document.getElementById("start-bot-btn").addEventListener("click", function() {
+            socket.emit('start_bot', {});
+        });
+
+        document.getElementById("stop-bot-btn").addEventListener("click", function() {
+            socket.emit('stop_bot', {});
+        });
+
+        function addTradeRow(trade) {
+            var tbody = document.getElementById("trade-history-table").getElementsByTagName("tbody")[0];
+            var row = tbody.insertRow(0); // Insert at the top
+            var timestamp = trade.timestamp ? new Date(trade.timestamp * 1000).toLocaleString() : 'N/A';
+            row.insertCell(0).innerText = timestamp;
+            row.insertCell(1).innerText = trade.signal;
+            row.insertCell(2).innerText = JSON.stringify(trade.order_ids);
+            row.insertCell(3).innerText = trade.result !== null ? trade.result : 'Pending';
+        }
+
+        function addLog(message) {
+            var logsDiv = document.getElementById("logs");
+            logsDiv.innerText += message + "\n";
+        }
+
+        // Listen for trade updates.
+        socket.on('trade_update', function(data) {
+            addTradeRow(data);
+            addLog("Trade update: " + JSON.stringify(data));
+        });
+
+        // Listen for bot activity messages.
+        socket.on('bot_activity', function(data) {
+            addLog("Activity: " + data.event + " - " + data.message);
+        });
+    </script>
+</body>
+</html>

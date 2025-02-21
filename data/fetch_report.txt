@@ -1,0 +1,7 @@
+✅ Historical data saved: data/^NSEI_historical.csv
+✅ Historical data saved: data/^BSESN_historical.csv
+✅ Historical data saved: data/RELIANCE.NS_historical.csv
+✅ Historical data saved: data/TCS.NS_historical.csv
+✅ Historical data saved: data/HDFCBANK.NS_historical.csv
+⚠️ No options data found for RELIANCE.NS
+⚠️ No options data found for TCS.NS

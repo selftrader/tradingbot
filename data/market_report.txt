@@ -1,0 +1,7 @@
+^NSEI Live Price: 23559.94921875
+^BSESN Live Price: 77860.1875
+RELIANCE.NS Live Price: 1266.699951171875
+⚠️ No data found for NIFTY50.NS
+✅ Historical data saved: data/RELIANCE.NS_historical.csv
+⚠️ No options data found for ^NSEI
+⚠️ No options data found for ^BANKNIFTY
