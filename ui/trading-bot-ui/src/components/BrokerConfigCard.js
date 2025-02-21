@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import { Edit, Delete, CheckCircle, Error } from '@mui/icons-material';
 
-interface BrokerConfigProps {
+type BrokerConfigProps = {
   config: {
     id: number;
     broker_name: string;
@@ -21,7 +21,7 @@ interface BrokerConfigProps {
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
   onToggleActive: (id: number) => void;
-}
+};
 
 const BrokerConfigCard: React.FC<BrokerConfigProps> = ({
   config,
