@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {
   Card,
   CardContent,
@@ -10,26 +11,8 @@ import {
 } from '@mui/material';
 import { Edit, Delete, CheckCircle, Error } from '@mui/icons-material';
 
-type BrokerConfigProps = {
-  config: {
-    id: number;
-    broker_name: string;
-    is_active: boolean;
-    status: string;
-    created_at: string;
-  };
-  onEdit: (id: number) => void;
-  onDelete: (id: number) => void;
-  onToggleActive: (id: number) => void;
-};
-
-const BrokerConfigCard: React.FC<BrokerConfigProps> = ({
-  config,
-  onEdit,
-  onDelete,
-  onToggleActive
-}) => {
-  const getStatusColor = (status: string) => {
+const BrokerConfigCard = ({ config, onEdit, onDelete, onToggleActive }) => {
+  const getStatusColor = (status) => {
     switch (status) {
       case 'connected':
         return 'success';
@@ -45,7 +28,7 @@ const BrokerConfigCard: React.FC<BrokerConfigProps> = ({
       <CardContent>
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="h6" component="div">
-            {config.broker_name.toUpperCase()}
+            recscse
           </Typography>
           <Box>
             <Chip
@@ -87,6 +70,19 @@ const BrokerConfigCard: React.FC<BrokerConfigProps> = ({
       </CardContent>
     </Card>
   );
+};
+
+BrokerConfigCard.propTypes = {
+  config: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    broker_name: PropTypes.string, // no longer used for display
+    is_active: PropTypes.bool.isRequired,
+    status: PropTypes.string.isRequired,
+    created_at: PropTypes.string.isRequired,
+  }).isRequired,
+  onEdit: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  onToggleActive: PropTypes.func.isRequired,
 };
 
 export default BrokerConfigCard;
