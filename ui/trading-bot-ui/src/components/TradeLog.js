@@ -1,29 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { Typography, Paper } from '@mui/material';
-import { subscribeToTradeUpdates } from '../services/api';
+import React from "react";
+import { Paper, Typography } from "@mui/material";
 
-const TradeLog = () => {
-    const [log, setLog] = useState([]);
-
-    useEffect(() => {
-        const unsubscribe = subscribeToTradeUpdates((update) => {
-            setLog(prevLog => [update, ...prevLog]);
-        });
-        return unsubscribe;
-    }, []);
-
-    return (
-        <Paper sx={{ p: 2, mt: 2 }}>
-            <Typography variant="h6">Trade Log</Typography>
-            {log.length > 0 ? log.map((entry, idx) => (
-                <Typography key={idx} variant="body2">
-                    {entry.message} at {entry.time}
-                </Typography>
-            )) : (
-                <Typography variant="body1">No trade updates yet.</Typography>
-            )}
+const TradeLog = ({ tradeLog }) => {
+  return (
+    <Paper sx={{ p: 2, background: "#1E1E1E", color: "white" }}>
+      <Typography variant="h6">Trade Executions</Typography>
+      {tradeLog.map((trade) => (
+        <Paper key={trade.id} sx={{ p: 1, my: 1, background: trade.pnl >= 0 ? "#008000" : "#FF0000" }}>
+          <Typography>
+            📊 <strong>{trade.stock}</strong> | LTP: ₹{trade.ltp} | Target: ₹{trade.target} | P&L: ₹{trade.pnl} | {trade.notification}
+          </Typography>
         </Paper>
-    );
+      ))}
+    </Paper>
+  );
 };
 
 export default TradeLog;

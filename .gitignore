@@ -93,3 +93,6 @@ ui/trading-bot-ui/dist/
 docker-compose.override.yml
 .DS_Store
 *.swp
+
+
+models/trading_model.pkl

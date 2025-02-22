@@ -1,18 +1,22 @@
-//// filepath: /c:/Work/P/app/tradingapp-main/tradingapp-main/ui/trading-bot-ui/src/Theme.js
-import { createTheme } from '@mui/material/styles';
+import { createTheme } from "@mui/material/styles";
 
-export const darkTheme = createTheme({
+const darkTheme = createTheme({
   palette: {
-    mode: 'dark',
-    primary: {
-      main: '#90caf9'
+    mode: "dark",
+    primary: { main: "#FF00D6" },
+    secondary: { main: "#7C3AED" },
+    background: { default: "#000000", paper: "#000000" },
+    text: { primary: "#ffffff", secondary: "#cccccc" },
+  },
+  typography: {
+    fontFamily: "Roboto, sans-serif",
+    h1: {
+      fontWeight: "bold",
+      background: "linear-gradient(90deg, #FF00D6, #7C3AED)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
     },
-    secondary: {
-      main: '#f48fb1'
-    },
-    background: {
-      default: '#121212',
-      paper: '#1d1d1d'
-    }
-  }
+  },
 });
+
+export  {darkTheme};  // ✅ Fixed missing export

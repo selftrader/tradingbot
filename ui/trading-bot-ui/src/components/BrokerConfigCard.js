@@ -24,10 +24,21 @@ const BrokerConfigCard = ({ config, onEdit, onDelete, onToggleActive }) => {
   };
 
   return (
-    <Card sx={{ mb: 2 }}>
+    <Card sx={{ 
+      mb: 2, 
+      backgroundColor: '#1d1d1d', 
+      borderRadius: 2, 
+      boxShadow: 3, 
+      border: '1px solid #333' 
+    }}>
       <CardContent>
+        {/* Header: Username and Status Chips */}
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6" component="div">
+          <Typography 
+            variant="h6" 
+            component="div" 
+            sx={{ fontWeight: 'bold', color: '#fff' }}
+          >
             recscse
           </Typography>
           <Box>
@@ -45,15 +56,26 @@ const BrokerConfigCard = ({ config, onEdit, onDelete, onToggleActive }) => {
           </Box>
         </Box>
 
-        <Box mt={2} display="flex" justifyContent="space-between">
+        {/* Body: Created date and Action Buttons */}
+        <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
           <Typography color="text.secondary" variant="body2">
             Created: {new Date(config.created_at).toLocaleString()}
           </Typography>
           <Box>
-            <IconButton size="small" onClick={() => onEdit(config.id)}>
+            <IconButton 
+              size="small" 
+              onClick={() => onEdit(config.id)} 
+              color="inherit"
+              sx={{ color: '#fff' }}
+            >
               <Edit />
             </IconButton>
-            <IconButton size="small" onClick={() => onDelete(config.id)}>
+            <IconButton 
+              size="small" 
+              onClick={() => onDelete(config.id)} 
+              color="inherit"
+              sx={{ color: '#fff' }}
+            >
               <Delete />
             </IconButton>
             <Button
@@ -61,7 +83,7 @@ const BrokerConfigCard = ({ config, onEdit, onDelete, onToggleActive }) => {
               size="small"
               onClick={() => onToggleActive(config.id)}
               startIcon={config.is_active ? <Error /> : <CheckCircle />}
-              sx={{ ml: 1 }}
+              sx={{ ml: 1, borderColor: '#fff', color: '#fff' }}
             >
               {config.is_active ? 'Deactivate' : 'Activate'}
             </Button>
@@ -75,9 +97,8 @@ const BrokerConfigCard = ({ config, onEdit, onDelete, onToggleActive }) => {
 BrokerConfigCard.propTypes = {
   config: PropTypes.shape({
     id: PropTypes.number.isRequired,
-    broker_name: PropTypes.string, // no longer used for display
-    is_active: PropTypes.bool.isRequired,
     status: PropTypes.string.isRequired,
+    is_active: PropTypes.bool.isRequired,
     created_at: PropTypes.string.isRequired,
   }).isRequired,
   onEdit: PropTypes.func.isRequired,

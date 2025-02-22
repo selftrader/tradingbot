@@ -197,4 +197,27 @@ export const subscribeToOptionsData = (symbol, callback) => {
 }
 */
 
+
+export const fetchLiveUpdates = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/live-updates`);
+      if (!response.ok) throw new Error("Failed to fetch live updates");
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching live updates:", error);
+      return [];
+    }
+  };
+  
+  export const fetchConfig = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/config`);
+      if (!response.ok) throw new Error("Failed to fetch config");
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching config:", error);
+      return null;
+    }
+  };
+
 export default tradingAPI;

@@ -1,42 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Typography, Paper } from '@mui/material';
-import { subscribeToTradeUpdates } from '../services/api';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+
+const data = [
+  { time: "09:00", price: 120 },
+  { time: "10:00", price: 135 },
+  { time: "11:00", price: 145 },
+  { time: "12:00", price: 155 },
+];
 
 const LiveChart = () => {
-    const [chartData, setChartData] = useState([]);
-    const [tradeUpdate, setTradeUpdate] = useState(null);
-
-    useEffect(() => {
-        const unsubscribe = subscribeToTradeUpdates((data) => {
-            setChartData(prevData => [...prevData, { time: new Date().toLocaleTimeString(), price: data.price }]);
-            setTradeUpdate(data);
-        });
-        return unsubscribe;
-    }, []);
-
-    return (
-        <Paper sx={{ p: 2, mt: 2 }}>
-            <Typography variant="h6">Live Chart</Typography>
-            {tradeUpdate ? (
-                <Typography variant="body1">
-                    {tradeUpdate.message} at {tradeUpdate.time}
-                </Typography>
-            ) : (
-                <Typography variant="body1">Waiting for updates...</Typography>
-            )}
-            <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData}>
-                    <XAxis dataKey="time" />
-                    <YAxis />
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="price" stroke="#8884d8" />
-                </LineChart>
-            </ResponsiveContainer>
-        </Paper>
-    );
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <LineChart data={data}>
+        <XAxis dataKey="time" stroke="#ffffff" />
+        <YAxis stroke="#ffffff" />
+        <Tooltip />
+        <Line type="monotone" dataKey="price" stroke="#FF00D6" strokeWidth={2} />
+      </LineChart>
+    </ResponsiveContainer>
+  );
 };
 
 export default LiveChart;
