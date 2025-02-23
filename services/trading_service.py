@@ -6,9 +6,10 @@ from upstox_api.api import OHLCInterval
 from broker.upstox_data_fetcher import UpstoxDataFetcher
 from fastapi import HTTPException, Depends
 from sqlalchemy.orm import Session
-from models.database_models import Trade, Position, User
 from database.connection import get_db
 from datetime import datetime
+
+from database.models import Trade
 from .technical_analysis import TechnicalAnalysis
 import yfinance as yf
 

@@ -1,31 +1,27 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { ThemeProvider, CssBaseline } from "@mui/material";
-import {darkTheme} from "./Theme";
+import React, { useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import Navbar from "./components/common/Navbar";
+import LandingPage from "./pages/LandingPage";
+import DashboardPage from "./pages/DashboardPage";
+import { isAuthenticated } from "./services/authService";
+import ThemeProviderWrapper from "./context/ThemeContext";
+import { CssBaseline } from "@mui/material";
 
-import Navbar from "./components/Navbar";
-import Dashboard from "./pages/Dashboard";
-import LiveUpdates from "./pages/LiveUpdates";  // ✅ Fixed wrong import
-import ConfigPage from "./pages/ConfigPage";  
-import StockAnalysisPage from "./pages/StockAnalysisPage";  
-import Footer from "./components/Footer";
+const App = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());
 
-function App() {
   return (
-    <ThemeProvider theme={darkTheme}>
+    <ThemeProviderWrapper>
       <CssBaseline />
       <Router>
         <Navbar />
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/liveupdate" element={<LiveUpdates />} />
-          <Route path="/config" element={<ConfigPage />} />
-          <Route path="/analyze" element={<StockAnalysisPage />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/dashboard" element={isLoggedIn ? <DashboardPage /> : <Navigate to="/" />} />
         </Routes>
-        <Footer />
       </Router>
-    </ThemeProvider>
+    </ThemeProviderWrapper>
   );
-}
+};
 
 export default App;

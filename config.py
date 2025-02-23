@@ -2,6 +2,11 @@ from typing import Dict
 import os
 from dotenv import load_dotenv
 
+load_dotenv()
+
+JWT_SECRET = os.getenv("JWT_SECRET", "mysecretkey")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:root@localhost/tradingbot")
+
 def get_config() -> Dict:
     load_dotenv()
     

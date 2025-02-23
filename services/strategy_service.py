@@ -1,5 +1,4 @@
 from sqlalchemy.orm import Session
-from models.database_models import TradingStrategy, Trade
 from typing import List, Dict
 import logging
 import pandas as pd

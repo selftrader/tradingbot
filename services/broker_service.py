@@ -2,13 +2,14 @@ from fastapi import HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import insert
 from database.connection import get_db
-from models.database_models import BrokerConfig, Trade, Position
 from datetime import datetime
 import logging
 from abc import ABC, abstractmethod
 from typing import Dict, List
 import aiohttp
 import pandas as pd
+
+from database.models import BrokerConfig
 
 logger = logging.getLogger(__name__)
 

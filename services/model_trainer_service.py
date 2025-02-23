@@ -7,7 +7,7 @@ import joblib
 import logging
 from datetime import datetime, timedelta
 from database.connection import get_db
-from models.database_models import Trade, Position
+from database.models import Trade
 
 logger = logging.getLogger(__name__)
 

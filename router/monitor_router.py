@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database.connection import get_db
+from database.models import Position, Trade
 from services.strategy_service import StrategyService
 from services.trading_service import TradingService
 from services.model_trainer_service import ModelTrainerService
-from models.database_models import Position, Trade
 from typing import List, Dict
 import asyncio
 import logging

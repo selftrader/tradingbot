@@ -1,50 +1,53 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database.connection import get_db
-from models.database_models import BrokerConfig
-from typing import Dict
-import logging
-from services.broker_factory import BrokerFactory
+from database.models import BrokerConfig
+from pydantic import BaseModel
+import os
+import jwt
+import requests
 
-router = APIRouter(prefix="/api/broker", tags=["broker"])
-logger = logging.getLogger(__name__)
 
-@router.post("/connect")
-async def connect_broker(
-    broker_data: Dict,
-    db: Session = Depends(get_db)
-):
+SECRET_KEY = os.getenv("JWT_SECRET", "mysecretkey")
+
+broker_router = APIRouter()
+
+# Request model for adding broker API key
+class BrokerConfigRequest(BaseModel):
+    broker_name: str
+    api_key: str
+    secret_key: str
+
+# Add broker API key
+@broker_router.post("/add_broker")
+def add_broker(config: BrokerConfigRequest, token: str, db: Session = Depends(get_db)):
     try:
-        broker = BrokerConfig(
-            broker_name=broker_data['broker_name'],
-            api_key=broker_data['api_key'],
-            api_secret=broker_data['api_secret'],
-            config_data=broker_data.get('config_data', {})
-        )
-        db.add(broker)
-        db.commit()
-        db.refresh(broker)
-        return {"message": "Broker connected successfully", "broker_id": broker.id}
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        username = payload.get("sub")
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
-@router.post("/authenticate/{broker_name}")
-async def authenticate_broker(broker_name: str, config: Dict):
-    """Start broker authentication"""
-    try:
-        broker = BrokerFactory.get_broker(broker_name, config)
-        result = await broker.authenticate()
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    new_config = BrokerConfig(user_id=username, broker_name=config.broker_name, config={"api_key": config.api_key, "secret_key": config.secret_key})
+    db.add(new_config)
+    db.commit()
+    return {"message": f"{config.broker_name} added successfully"}
 
-@router.post("/callback/{broker_name}")
-async def broker_callback(broker_name: str, token: str, config: Dict):
-    """Handle broker authentication callback"""
+
+# Fetch user profile from broker API
+@broker_router.get("/get_broker_profile")
+def get_broker_profile(token: str, db: Session = Depends(get_db)):
     try:
-        broker = BrokerFactory.get_broker(broker_name, config)
-        access_token = await broker.generate_token(token)
-        return {"status": "success", "access_token": access_token}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        username = payload.get("sub")
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    user_broker = db.query(BrokerConfig).filter(BrokerConfig.user_id == username).first()
+    if not user_broker:
+        raise HTTPException(status_code=400, detail="Broker not configured")
+
+    broker_api_url = "https://api.broker.com/user/profile"
+    headers = {"Authorization": f"Bearer {user_broker.config['api_key']}"}
+    
+    response = requests.get(broker_api_url, headers=headers)
+    return response.json()

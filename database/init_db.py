@@ -1,20 +1,10 @@
-from sqlalchemy_utils import database_exists, create_database
-from models.database_models import Base
-from database.connection import engine
-import logging
+from database.connection import engine, Base
+from database.models import User, Trade, TradingSession, BrokerConfig
 
-logger = logging.getLogger(__name__)
+# ✅ Create all tables
+def init_db():
+    Base.metadata.create_all(bind=engine)
 
-def init_database():
-    """Initialize the database"""
-    try:
-        if not database_exists(engine.url):
-            create_database(engine.url)
-            logger.info(f"Created database at {engine.url}")
-
-        Base.metadata.create_all(bind=engine)
-        logger.info("Database tables created successfully")
-        
-    except Exception as e:
-        logger.error(f"Failed to initialize database: {str(e)}")
-        raise
+if __name__ == "__main__":
+    init_db()
+    print("Database initialized successfully!")

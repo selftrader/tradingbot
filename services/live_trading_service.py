@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import logging
 from typing import Dict, List
 from database.connection import get_db
-from models.database_models import Trade, Position  # Changed import statement
+from database.models import Position, Trade
 
 logger = logging.getLogger(__name__)
 

@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database.connection import get_db
-from models.database_models import Trade, Position
 from typing import List, Dict
 from datetime import datetime
+
+from database.models import Position, Trade
 
 router = APIRouter(prefix="/api/trading", tags=["trading"])
 

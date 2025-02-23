@@ -1,8 +1,9 @@
 from typing import Dict, Optional
 import logging
 from datetime import datetime, timedelta
-from models.database_models import Trade, Position
 from sqlalchemy.orm import Session
+
+from database.models import Trade
 
 logger = logging.getLogger(__name__)
 
