@@ -6,7 +6,6 @@ requests
 Flask
 flask-socketio
 fastapi
-uvicornannotated-types==0.7.0
 anyio==4.8.0
 attrs==25.1.0
 autobahn==19.11.2
@@ -89,7 +88,6 @@ wsproto==1.2.0
 yfinance==0.2.52
 zope.interface==7.2
 annotated-types==0.7.0
-anyio==4.8.0
 attrs==25.1.0
 autobahn==19.11.2
 Automat==24.8.1
@@ -117,7 +115,6 @@ h11==0.14.0
 html5lib==1.1
 hyperlink==21.0.0
 idna==3.10
-incremental==24.7.2
 itsdangerous==2.2.0
 Jinja2==3.1.5
 joblib==1.4.2
@@ -147,7 +144,6 @@ python-dotenv==1.0.1
 python-engineio==4.11.2
 python-socketio==5.12.1
 pytz==2025.1
-pywin32==308
 requests==2.32.3
 scikit-learn==1.6.1
 scipy==1.15.1
