@@ -27,15 +27,22 @@ export const login = async (credentials) => {
     if (!response.ok) return { success: false, error: "Invalid credentials" };
 
     const data = await response.json();
-    localStorage.setItem("token", data.token); // ✅ Store JWT token
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("isLoggedIn", "true");  // ✅ Store login state
+    window.dispatchEvent(new Event("storage"));  // ✅ Notify all components of login
+
     return { success: true };
   } catch (error) {
     return { success: false, error: "Server error" };
   }
 };
 
-export const isAuthenticated = () => !!localStorage.getItem("token");
-
+// ✅ Logout function clears everything properly
 export const logout = () => {
   localStorage.removeItem("token");
+  localStorage.removeItem("isLoggedIn");
+  window.dispatchEvent(new Event("storage"));  // ✅ Notify React components about logout
 };
+
+// ✅ Check if user is authenticated
+export const isAuthenticated = () => !!localStorage.getItem("token");

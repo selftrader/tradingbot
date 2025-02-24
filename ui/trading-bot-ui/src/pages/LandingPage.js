@@ -10,9 +10,17 @@ const LandingPage = () => {
 
   const handleGetStarted = () => {
     if (isAuthenticated()) {
-      navigate("/dashboard"); // ✅ Redirect to Dashboard if logged in
+      navigate("/dashboard");  // ✅ Redirect to Dashboard if logged in
     } else {
-      setAuthOpen(true); // ✅ Open login/signup modal if not logged in
+      setAuthOpen(true);  // ✅ Open login modal if not logged in
+    }
+  };
+
+  const handleViewDashboard = () => {
+    if (isAuthenticated()) {
+      navigate("/dashboard");  // ✅ If logged in, go to Dashboard
+    } else {
+      setAuthOpen(true);  // ✅ If not logged in, open login modal
     }
   };
 
@@ -25,13 +33,18 @@ const LandingPage = () => {
         The best AI-powered trading platform for Indian markets (NSE/BSE).
       </Typography>
       <Box sx={{ mt: 4 }}>
+        {/* ✅ "Get Started" now works correctly */}
         <Button variant="contained" sx={{ backgroundColor: "#ff44ff", color: "black", mr: 2 }} onClick={handleGetStarted}>
           Get Started
         </Button>
-        <Button variant="outlined" sx={{ borderColor: "#ff44ff", color: "#ff44ff" }} onClick={() => navigate("/dashboard")}>
+
+        {/* ✅ "View Dashboard" now opens login modal when logged out */}
+        <Button variant="outlined" sx={{ borderColor: "#ff44ff", color: "#ff44ff" }} onClick={handleViewDashboard}>
           View Dashboard
         </Button>
       </Box>
+
+      {/* ✅ Login Modal */}
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </Container>
   );

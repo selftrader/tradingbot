@@ -6,14 +6,16 @@ const Login = () => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
-    const navigate = useNavigate(); // ✅ Hook for navigation
+    const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
         const result = await login({ username, password });
 
         if (result.success) {
-            navigate("/dashboard"); // ✅ Redirect to dashboard after login
+            localStorage.setItem("isLoggedIn", "true");  // ✅ Ensure login state is stored
+            window.dispatchEvent(new Event("storage"));  // ✅ Trigger auth update
+            navigate("/dashboard");  // ✅ Redirect to dashboard
         } else {
             setError(result.error);
         }
