@@ -62,10 +62,15 @@ app = FastAPI(
 sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 sio_app = socketio.ASGIApp(sio, other_asgi_app=app)
 
+
+origins = [
+    "https://resplendent-shortbread-e830d3.netlify.app",  # ✅ Your Netlify frontend URL
+    "http://localhost:3000"  # ✅ Allow local development
+]
 # Add Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change this to specific frontend URL for security
+    allow_origins=origins,  # Change this to specific frontend URL for security
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
