@@ -7,14 +7,14 @@ from services.sector_analyzer import SectorAnalyzer
 from database.connection import get_db  # Updated import path
 from config import SECTORAL_INDICES
 
-router = APIRouter()
+sector_router = APIRouter()
 
-@router.get("/api/sectors")
+@sector_router.get("/api/sectors")
 async def get_sectors():
     """Get list of available sectors"""
     return list(SECTORAL_INDICES.keys())
 
-@router.get("/api/sectors/{sector_name}/analysis")
+@sector_router.get("/api/sectors/{sector_name}/analysis")
 async def analyze_sector(
     sector_name: str,
     db: Session = Depends(get_db)

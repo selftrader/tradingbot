@@ -3,7 +3,6 @@ from fastapi.responses import RedirectResponse, JSONResponse, HTMLResponse
 from pydantic import BaseModel
 from typing import Dict, Optional
 import requests
-from broker.upstox_client import authenticate_upstox_v2, exchange_code_for_token_v2
 from config import UPSTOX_REDIRECT_URI  # Import the redirect URI
 
 # Initialize router without prefix
@@ -35,12 +34,8 @@ async def save_configuration(configuration: UpstoxConfiguration):
         }
 
         # Get login URL
-        result = authenticate_upstox_v2(
-            client_id=client_id,
-            redirect_uri=f"{UPSTOX_REDIRECT_URI}"
-        )
+      
         
-        return JSONResponse(result)
 
     except Exception as e:
         print(f"Error in configuration: {str(e)}")
@@ -63,21 +58,12 @@ async def upstox_callback(code: str = Query(...), state: Optional[str] = Query(N
                 detail="No stored credentials found"
             )
 
-        # Exchange code for token
-        access_token = exchange_code_for_token_v2(
-            authorization_code=code,
-            client_id=stored_creds["client_id"],
-            client_secret=stored_creds["client_secret"],
-            redirect_uri=UPSTOX_REDIRECT_URI
-        )
+      
 
         # Clear stored credentials
         credentials_store.clear()
 
-        return {
-            "message": "Authentication successful",
-            "access_token": access_token
-        }
+     
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -95,8 +81,15 @@ async def redirect_to_login(client_id: str):
     """
     Endpoint that performs the actual redirect to Upstox login page
     """
-    try:
-        login_url = authenticate_upstox_v2(client_id)
-        return RedirectResponse(url=login_url)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Get stored credentials
+    stored_creds = credentials_store.get(client_id)
+    if not stored_creds:
+        raise HTTPException(
+            status_code=400,
+            detail="No stored credentials found"
+        )
+
+    # Redirect to Upstox login page
+    return RedirectResponse(
+        url=f"https://api.upstox.com/index/dialog/authorize?apiKey={stored_creds['client_id']}&redirect_uri={UPSTOX_REDIRECT_URI}&response_type=code"
+    )
