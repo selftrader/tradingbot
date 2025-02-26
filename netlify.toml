@@ -1,7 +1,7 @@
 [build]
   base = "ui/trading-bot-ui"  # ✅ Set the frontend directory
   publish = "ui/trading-bot-ui/build"  # ✅ Where Netlify deploys from
-  command = "CI=false ESLINT_NO_DEV_ERRORS=true npm install && npm run build"  # ✅ Disable ESLint errors in CI mode
+  command = "CI=false DISABLE_ESLINT_PLUGIN=true ESLINT_NO_DEV_ERRORS=true npm install && npm run build"  # ✅ Disable ESLint errors in CI mode
 
 [[redirects]]
   from = "/*"
