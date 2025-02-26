@@ -7,13 +7,11 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import TradeControlPage from "./pages/TradeControlPage";
 import ConfigPage from "./pages/ConfigPage";
-import AnalysisPage from "./pages/StockAnalysisPage";
 import { isAuthenticated } from "./services/authService";
 import ThemeProviderWrapper from "./context/ThemeContext";
 import { CssBaseline } from "@mui/material";
 import PrivateRoute from "./routes/PrivateRoute";
 import StockAnalysisPage from "./pages/StockAnalysisPage";
-import ProfilePage from "./pages/ProfilePage";
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());

@@ -1,13 +1,11 @@
 from typing import List, Dict
 import pandas as pd
 import numpy as np
-from models.stock_selector import StockSelector, StockSignal
 import yfinance as yf
 from datetime import datetime, timedelta
 
 class StockAnalyzer:
     def __init__(self):
-        self.selector = StockSelector()
         self.market_data_cache = {}
         
     async def analyze_sector_stocks(self, sector: str, symbols: List[str]) -> List[StockSignal]:

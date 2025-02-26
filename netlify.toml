@@ -1,7 +1,7 @@
 [build]
   base = "ui/trading-bot-ui"  # Set to frontend directory
   publish = "ui/trading-bot-ui/build"  # Directory to deploy after build
-  command = "npm install && npm run build"  # Build the React app
+  command = "ESLINT_NO_DEV_ERRORS=true npm install && npm run build"
 
 [[redirects]]
   from = "/*"

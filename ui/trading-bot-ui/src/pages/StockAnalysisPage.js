@@ -26,7 +26,6 @@ import { PlayArrow } from '@mui/icons-material';
 
 const StockAnalysisPage = () => {
   const [sector, setSector] = useState('');
-  const [analysisResults, setAnalysisResults] = useState([]);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -34,7 +33,6 @@ const StockAnalysisPage = () => {
   const [selectedStocks, setSelectedStocks] = useState([]);
   const [tradingStarted, setTradingStarted] = useState(false);
   const [tradingError, setTradingError] = useState("");
-  const [manualStockInput, setManualStockInput] = useState('');
   const [availableStocks, setAvailableStocks] = useState([]);
 
   useEffect(() => {
