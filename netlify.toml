@@ -1,0 +1,9 @@
+[build]
+  base = "ui/trading-bot-ui"  # Set to frontend directory
+  publish = "ui/trading-bot-ui/build"  # Directory to deploy after build
+  command = "npm install && npm run build"  # Build the React app
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
