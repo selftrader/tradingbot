@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Container,
     Paper,
@@ -43,19 +43,22 @@ const ConfigPage = ({ user }) => {
     const [brokerAccounts, setBrokerAccounts] = useState([]);
     const [open, setOpen] = useState(false);
 
-    // Fetch list of stored broker accounts for the logged-in user
-    const fetchBrokerAccounts = async () => {
+    //  Fix: Use useCallback to memoize the fetch function
+    const fetchBrokerAccounts = useCallback(async () => {
         try {
             const accounts = await tradingAPI.getBrokerConfigs({ userId: user?.id });
             setBrokerAccounts(accounts);
         } catch (err) {
             console.error('Error fetching broker accounts:', err);
         }
-    };
+    }, [user?.id]); // ✅ Now it's a stable function
 
+    // Fix: Now `fetchBrokerAccounts` can be safely added to the dependency array
     useEffect(() => {
-        if (user) fetchBrokerAccounts();
-    }, [user, success]);
+        if (user) {
+            fetchBrokerAccounts();
+        }
+    }, [user, success, fetchBrokerAccounts]); //  Fixed dependency array
 
     const handleBrokerChange = (e) => {
         const selected = e.target.value;
@@ -115,7 +118,6 @@ const ConfigPage = ({ user }) => {
         setError('');
         setSuccess('');
         try {
-            // Include the user ID in the payload.
             await tradingAPI.saveBrokerConfig({ ...config, userId: user.id });
             setSuccess('Broker configuration saved successfully!');
             setOpen(false);
@@ -198,54 +200,16 @@ const ConfigPage = ({ user }) => {
                     {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
                     {selectedBroker && (
                         <form id="brokerForm" onSubmit={handleSubmit}>
-                            <TextField
-                                fullWidth
-                                margin="normal"
-                                name="brokerName"
-                                label="Broker Name"
-                                variant="outlined"
-                                value={config.brokerName}
-                                onChange={handleChange}
-                            />
-                            <TextField
-                                fullWidth
-                                margin="normal"
-                                name="apiKey"
-                                label="API Key"
-                                variant="outlined"
-                                value={config.apiKey}
-                                onChange={handleChange}
-                            />
-                            <TextField
-                                fullWidth
-                                margin="normal"
-                                name="secretKey"
-                                label="Secret Key"
-                                variant="outlined"
-                                value={config.secretKey}
-                                onChange={handleChange}
-                            />
-                            <TextField
-                                fullWidth
-                                margin="normal"
-                                name="baseUrl"
-                                label="Base URL"
-                                variant="outlined"
-                                value={config.baseUrl}
-                                onChange={handleChange}
-                            />
+                            <TextField fullWidth margin="normal" name="brokerName" label="Broker Name" variant="outlined" value={config.brokerName} onChange={handleChange} />
+                            <TextField fullWidth margin="normal" name="apiKey" label="API Key" variant="outlined" value={config.apiKey} onChange={handleChange} />
+                            <TextField fullWidth margin="normal" name="secretKey" label="Secret Key" variant="outlined" value={config.secretKey} onChange={handleChange} />
+                            <TextField fullWidth margin="normal" name="baseUrl" label="Base URL" variant="outlined" value={config.baseUrl} onChange={handleChange} />
                         </form>
                     )}
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleClose}>Cancel</Button>
-                    <Button
-                        type="submit"
-                        form="brokerForm"
-                        variant="contained"
-                        color="primary"
-                        disabled={loading}
-                    >
+                    <Button type="submit" form="brokerForm" variant="contained" color="primary" disabled={loading}>
                         {loading ? 'Saving...' : 'Save Configuration'}
                     </Button>
                 </DialogActions>
