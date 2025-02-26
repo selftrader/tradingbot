@@ -1,8 +1,12 @@
 import React, { useState } from "react";
-import { Container, Typography, Button, Box } from "@mui/material";
+import { Container, Typography, Button, Box, Grid } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { isAuthenticated } from "../services/authService";
 import AuthModal from "../components/auth/AuthModal";
+import RealTimeMarket from "../components/RealTimeMarket";
+import Footer from "../components/common/Footer";
+import { motion } from "framer-motion";
+import tradingGif from "../assets/algotrading-ui.gif";  // ✅ Background GIF
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -10,43 +14,91 @@ const LandingPage = () => {
 
   const handleGetStarted = () => {
     if (isAuthenticated()) {
-      navigate("/dashboard");  // ✅ Redirect to Dashboard if logged in
+      navigate("/dashboard");
     } else {
-      setAuthOpen(true);  // ✅ Open login modal if not logged in
+      setAuthOpen(true);
     }
   };
 
-  const handleViewDashboard = () => {
-    if (isAuthenticated()) {
-      navigate("/dashboard");  // ✅ If logged in, go to Dashboard
-    } else {
-      setAuthOpen(true);  // ✅ If not logged in, open login modal
-    }
+  const handleCloseAuthModal = () => {
+    setAuthOpen(false);
   };
 
   return (
-    <Container sx={{ textAlign: "center", mt: 10 }}>
-      <Typography variant="h3" sx={{ fontWeight: "bold", color: "#ff44ff" }}>
-        Welcome to Trading Bot AI
-      </Typography>
-      <Typography variant="h6" sx={{ mt: 2, color: "white" }}>
-        The best AI-powered trading platform for Indian markets (NSE/BSE).
-      </Typography>
-      <Box sx={{ mt: 4 }}>
-        {/* ✅ "Get Started" now works correctly */}
-        <Button variant="contained" sx={{ backgroundColor: "#ff44ff", color: "black", mr: 2 }} onClick={handleGetStarted}>
-          Get Started
-        </Button>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        position: "relative",
+        overflow: "hidden",
+        color: "text.primary",
+      }}
+    >
+      {/* ✅ Background GIF */}
+      <Box
+        component="img"
+        src={tradingGif}
+        alt="Algo Trading UI"
+        sx={{
+          position: "absolute",
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          opacity: 0.3, // ✅ Ensures readability
+          zIndex: -1, // ✅ Places the image behind content
+        }}
+      />
 
-        {/* ✅ "View Dashboard" now opens login modal when logged out */}
-        <Button variant="outlined" sx={{ borderColor: "#ff44ff", color: "#ff44ff" }} onClick={handleViewDashboard}>
-          View Dashboard
-        </Button>
-      </Box>
+      {/* ✅ Hero Section with Animation */}
+      <Container maxWidth="lg" sx={{ textAlign: "center", paddingTop: "6rem", position: "relative", zIndex: 1 }}>
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
+          <Typography variant="h3" sx={{ fontWeight: "bold", color: "primary.main" }}>
+            AI-Powered Algo Trading Bot
+          </Typography>
+          <Typography variant="h6" sx={{ color: "text.secondary", marginTop: "1rem" }}>
+            Automate your trades with AI-driven strategies. Analyze, predict, and execute trades effortlessly.
+          </Typography>
+        </motion.div>
+
+        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+          <Button
+            variant="contained"
+            sx={{ backgroundColor: "secondary.main", color: "text.primary", marginTop: "2rem", padding: "12px 24px", borderRadius: "8px" }}
+            onClick={handleGetStarted}
+          >
+            {isAuthenticated() ? "Go to Dashboard" : "Get Started"}
+          </Button>
+        </motion.div>
+      </Container>
+
+      {/* ✅ Live Market Data Section */}
+      <RealTimeMarket />
+
+      {/* ✅ Features Section with Animations */}
+      <Container maxWidth="md" sx={{ marginTop: "4rem", position: "relative", zIndex: 1 }}>
+        <Grid container spacing={4}>
+          {[
+            { icon: "📊", title: "AI Strategy", text: "Trade with machine learning-powered strategies." },
+            { icon: "⚡", title: "Real-Time Execution", text: "Lightning-fast trade execution with real-time market updates." },
+            { icon: "🔒", title: "Secure & Reliable", text: "Your trading data is encrypted and securely managed." }
+          ].map((feature, index) => (
+            <Grid item xs={12} sm={6} md={4} key={index}>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Box textAlign="center">
+                  <Typography variant="h5" sx={{ fontWeight: "bold", color: "primary.main" }}>{feature.icon} {feature.title}</Typography>
+                  <Typography variant="body1" sx={{ color: "text.secondary" }}>{feature.text}</Typography>
+                </Box>
+              </motion.div>
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
 
       {/* ✅ Login Modal */}
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
-    </Container>
+      <AuthModal open={authOpen} handleClose={handleCloseAuthModal} />
+
+      {/* ✅ Common Footer Section */}
+      <Footer />
+    </Box>
   );
 };
 

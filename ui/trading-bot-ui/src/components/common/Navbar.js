@@ -14,37 +14,58 @@ const Navbar = () => {
   const [loggedIn, setLoggedIn] = useState(isAuthenticated());
 
   useEffect(() => {
-    setLoggedIn(isAuthenticated());
+    setLoggedIn(isAuthenticated());  // ✅ Fix: Track login status on refresh
   }, []);
 
   const handleLogout = () => {
-    logout();
+    logout(navigate);  // ✅ Fix: Ensure `navigate` is passed correctly
     setLoggedIn(false);
-    navigate("/");
   };
 
   return (
     <>
       <AppBar position="static" sx={{ backgroundColor: darkMode ? "#000000" : "#ffffff" }}>
         <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: "bold", color: darkMode ? "#ff44ff" : "#6a11cb" }}>
-            Trading Bot AI
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            AI Trading Bot
           </Typography>
+
+          {/* ✅ Light/Dark Mode Toggle Button */}
+          <IconButton
+            onClick={toggleTheme}
+            sx={{
+              backgroundColor: darkMode ? "#f4f4f4" : "#222",
+              color: darkMode ? "#222" : "#fff",
+              borderRadius: "50%",
+              padding: "8px",
+              marginRight: "10px",
+              transition: "0.3s",
+              "&:hover": {
+                backgroundColor: darkMode ? "#ddd" : "#333",
+              },
+            }}
+          >
+            {darkMode ? <LightModeIcon /> : <DarkModeIcon />}
+          </IconButton>
+
           {loggedIn ? (
-            <Button sx={{ color: darkMode ? "white" : "black" }} onClick={handleLogout}>
-              Logout
-            </Button>
+            <>
+              <Button component={Link} to="/dashboard" color="inherit">
+                Dashboard
+              </Button>
+              <Button onClick={handleLogout} color="inherit">
+                Logout
+              </Button>
+            </>
           ) : (
-            <Button sx={{ color: darkMode ? "white" : "black" }} onClick={() => setAuthOpen(true)}>
-              Login / Signup
+            <Button onClick={() => setAuthOpen(true)} color="inherit">
+              Login
             </Button>
           )}
-          <IconButton onClick={toggleTheme}>
-            {darkMode ? <LightModeIcon sx={{ color: "#ff44ff" }} /> : <DarkModeIcon sx={{ color: "#6a11cb" }} />}
-          </IconButton>
         </Toolbar>
       </AppBar>
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+
+      <AuthModal open={authOpen} handleClose={() => setAuthOpen(false)} />
     </>
   );
 };

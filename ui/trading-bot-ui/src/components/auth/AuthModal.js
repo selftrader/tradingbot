@@ -4,76 +4,71 @@ import CloseIcon from "@mui/icons-material/Close";
 import { login, signup } from "../../services/authService";
 import { useNavigate } from "react-router-dom";
 
-const AuthModal = ({ open, onClose }) => {
-  const [isLogin, setIsLogin] = useState(true); // Toggle between login/signup
+const AuthModal = ({ open, handleClose }) => {  // ✅ Fix: Rename `onClose` to `handleClose`
+  const [isLogin, setIsLogin] = useState(true);
   const [credentials, setCredentials] = useState({ username: "", email: "", password: "" });
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleAuth = async () => {
-    const response = isLogin ? await login(credentials) : await signup(credentials);
+    const response = isLogin ? await login(credentials, navigate) : await signup(credentials);
     if (response.success) {
-      onClose(); // Close modal on success
-      if (!isLogin) navigate("/dashboard");
+      handleClose();  // ✅ Fix: Properly close the modal
+      setCredentials({ username: "", email: "", password: "" });  // ✅ Clear fields
     } else {
       setError(response.error);
     }
   };
 
   return (
-    <Drawer anchor="right" open={open} onClose={onClose}>
-      <Box sx={{ width: 350, p: 4, backgroundColor: "#121212", height: "100vh" }}>
-        <IconButton onClick={onClose} sx={{ position: "absolute", right: 10, top: 10 }}>
-          <CloseIcon sx={{ color: "#ff44ff" }} />
+    <Drawer anchor="right" open={open} onClose={handleClose}>  
+      <Box sx={{ width: 350, p: 4, backgroundColor: "#121212", color: "#fff" }}>
+        <IconButton onClick={handleClose} sx={{ position: "absolute", top: 10, right: 10, color: "#fff" }}>
+          <CloseIcon />
         </IconButton>
-        <Typography variant="h4" sx={{ color: "#ff44ff", fontWeight: "bold", textAlign: "center", mb: 3 }}>
-          {isLogin ? "Login" : "Create Account"}
+        <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
+          {isLogin ? "Login" : "Sign Up"}
         </Typography>
+
         {!isLogin && (
           <TextField
             fullWidth
             label="Email"
-            margin="normal"
             variant="outlined"
-            sx={{ input: { color: "white" }, label: { color: "grey" } }}
+            margin="normal"
             value={credentials.email}
             onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
           />
         )}
+
         <TextField
           fullWidth
           label="Username"
-          margin="normal"
           variant="outlined"
-          sx={{ input: { color: "white" }, label: { color: "grey" } }}
+          margin="normal"
           value={credentials.username}
           onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
         />
+
         <TextField
           fullWidth
           label="Password"
           type="password"
-          margin="normal"
           variant="outlined"
-          sx={{ input: { color: "white" }, label: { color: "grey" } }}
+          margin="normal"
           value={credentials.password}
           onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
         />
+
         {error && <Typography color="error">{error}</Typography>}
-        <Button
-          fullWidth
-          variant="contained"
-          sx={{ mt: 2, backgroundColor: "#ff44ff", color: "black" }}
-          onClick={handleAuth}
-        >
-          {isLogin ? "Login" : "Signup"}
+
+        <Button fullWidth variant="contained" sx={{ mt: 2 }} onClick={handleAuth}>
+          {isLogin ? "Login" : "Sign Up"}
         </Button>
-        <Typography sx={{ textAlign: "center", mt: 2 }}>
-          {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-          <Button sx={{ color: "#ff44ff" }} onClick={() => setIsLogin(!isLogin)}>
-            {isLogin ? "Create Account" : "Login"}
-          </Button>
-        </Typography>
+
+        <Button fullWidth sx={{ mt: 2 }} onClick={() => setIsLogin(!isLogin)}>
+          {isLogin ? "Need an account? Sign Up" : "Already have an account? Login"}
+        </Button>
       </Box>
     </Drawer>
   );

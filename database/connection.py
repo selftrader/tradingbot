@@ -1,26 +1,29 @@
+import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import os
-from dotenv import load_dotenv
 
 # ✅ Load environment variables
 load_dotenv()
 
-# ✅ Fetch DATABASE_URL from .env (Ensure it's properly set)
+# ✅ Ensure DATABASE_URL is set
 DATABASE_URL = os.getenv("DATABASE_URL")
-
 if not DATABASE_URL:
-    raise ValueError("❌ DATABASE_URL is not set. Please configure it in the .env file.")
+    raise ValueError("❌ ERROR: DATABASE_URL is missing in .env file!")
 
 # ✅ Create PostgreSQL Engine with Connection Pooling
-engine = create_engine(
-    DATABASE_URL,
-    pool_size=20,           # ✅ Allows up to 20 connections
-    max_overflow=10,        # ✅ Allows 10 extra connections if needed
-    echo=False,             # ✅ Set to True to debug SQL queries
-    pool_pre_ping=True,     # ✅ Ensures broken connections are detected & removed
-)
+try:
+    engine = create_engine(
+        DATABASE_URL,
+        pool_size=20,
+        max_overflow=10,
+        echo=False,  # Set True for debugging SQL queries
+        pool_pre_ping=True
+    )
+    print("✅ Database connected successfully.")
+except Exception as e:
+    raise RuntimeError(f"❌ Database connection failed: {e}")
 
 # ✅ Session Management
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -32,8 +35,5 @@ def get_db():
     try:
         db = SessionLocal()
         yield db
-    except Exception as e:
-        print(f"⚠️ Database connection error: {e}")  # ✅ Log errors
     finally:
-        if db:
-            db.close()
+        db.close()
