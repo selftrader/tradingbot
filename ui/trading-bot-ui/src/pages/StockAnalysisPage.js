@@ -29,7 +29,7 @@ const StockAnalysisPage = () => {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [analysis, setAnalysis] = useState(null);
+  // const [analysis, setAnalysis] = useState(null);
   const [selectedStocks, setSelectedStocks] = useState([]);
   const [tradingStarted, setTradingStarted] = useState(false);
   const [tradingError, setTradingError] = useState("");
@@ -64,14 +64,14 @@ const StockAnalysisPage = () => {
     }
   };
 
-  const fetchAnalysis = async (sector) => {
-    try {
-      const data = await analyzeSectoralOptions(sector);
-      setAnalysis(data);
-    } catch (error) {
-      console.error('Error fetching analysis:', error);
-    }
-  };
+  // const fetchAnalysis = async (sector) => {
+  //   try {
+  //     const data = await analyzeSectoralOptions(sector);
+  //     setAnalysis(data);
+  //   } catch (error) {
+  //     console.error('Error fetching analysis:', error);
+  //   }
+  // };
 
   const handleStockSelect = (stock) => {
     setSelectedStocks(prev => 
