@@ -8,7 +8,7 @@ class StockAnalyzer:
     def __init__(self):
         self.market_data_cache = {}
         
-    async def analyze_sector_stocks(self, sector: str, symbols: List[str]) -> List[StockSignal]:
+    async def analyze_sector_stocks(self, sector: str, symbols: List[str]) -> List[Dict]:
         """Analyze all stocks in a sector and return top trading opportunities"""
         signals = []
         market_data = await self._get_market_data()
