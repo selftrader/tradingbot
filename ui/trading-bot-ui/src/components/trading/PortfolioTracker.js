@@ -1,30 +1,17 @@
-import React, { useState } from "react";
-import { Card, CardContent, Typography, Button } from "@mui/material";
+import React from "react";
+import { Card, CardContent, Typography } from "@mui/material";
 
 const PortfolioTracker = () => {
-  const [watchlist, setWatchlist] = useState([]);
-
-  const addStock = (symbol) => {
-    if (!watchlist.includes(symbol)) {
-      setWatchlist([...watchlist, symbol]);
-    }
-  };
-
   return (
-    <Card sx={{ minWidth: 275, margin: "10px", backgroundColor: "#121212", color: "white" }}>
+    <Card sx={{ padding: 2 }}>
       <CardContent>
-        <Typography variant="h6">Stock Watchlist</Typography>
-        {watchlist.length === 0 ? (
-          <Typography>No stocks added yet.</Typography>
-        ) : (
-          watchlist.map((stock, index) => (
-            <Typography key={index} variant="body1">• {stock}</Typography>
-          ))
-        )}
-        <Button onClick={() => addStock("RELIANCE")}>Add RELIANCE</Button>
+        <Typography variant="h6">Portfolio Performance</Typography>
+        <Typography variant="body1" color="secondary">
+          Total Profit/Loss: ₹ 12,500
+        </Typography>
       </CardContent>
     </Card>
   );
 };
 
-export default PortfolioTracker;
+export default PortfolioTracker; // ✅ Ensure default export

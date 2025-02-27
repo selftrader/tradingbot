@@ -1,51 +1,17 @@
 import { createTheme } from "@mui/material/styles";
 
-export const lightTheme = createTheme({
+const tradingTheme = createTheme({
   palette: {
-    mode: "light",
-    primary: { main: "#6a11cb" },
-    background: { default: "#ffffff", paper: "#f9f9f9" },
-    text: { primary: "#1a1a1a", secondary: "#444" },
+    primary: { main: "#007bff" }, // Trading Blue
+    secondary: { main: "#28a745" }, // Profit Green
+    error: { main: "#dc3545" }, // Loss Red
+    background: { default: "#f4f6f9", paper: "#ffffff" },
+    text: { primary: "#212529", secondary: "#6c757d" },
   },
   typography: {
-    fontFamily: "'Poppins', sans-serif",
-    fontWeightBold: 700,
-  },
-  components: {
-    MuiIconButton: {
-      styleOverrides: {
-        root: {
-          color: "#222",
-          "&:hover": {
-            color: "#000",
-          },
-        },
-      },
-    },
+    fontFamily: "'Inter', sans-serif",
+    button: { textTransform: "none", fontWeight: "bold" },
   },
 });
 
-export const darkTheme = createTheme({
-  palette: {
-    mode: "dark",
-    primary: { main: "#ff44ff" },
-    background: { default: "#121212", paper: "#1e1e1e" },
-    text: { primary: "#ffffff", secondary: "#bbb" },
-  },
-  typography: {
-    fontFamily: "'Poppins', sans-serif",
-    fontWeightBold: 700,
-  },
-  components: {
-    MuiIconButton: {
-      styleOverrides: {
-        root: {
-          color: "#fff",
-          "&:hover": {
-            color: "#ddd",
-          },
-        },
-      },
-    },
-  },
-});
+export default tradingTheme;
