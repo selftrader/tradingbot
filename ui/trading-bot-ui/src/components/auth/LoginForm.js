@@ -20,8 +20,21 @@ const LoginForm = ({ onLogin }) => {
 
   return (
     <Container maxWidth="sm">
-      <Box sx={{ textAlign: "center", mt: 10, backgroundColor: "#121212", padding: "20px", borderRadius: "10px" }}>
-        <Typography variant="h4" sx={{ color: "#ff44ff", fontWeight: "bold" }}>Login</Typography>
+      <Box
+        sx={{
+          textAlign: "center",
+          mt: 10,
+          backgroundColor: "#ffffff", // ✅ Forced white background
+          padding: "30px",
+          borderRadius: "10px",
+          boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)", // ✅ Added light shadow
+        }}
+      >
+        <Typography variant="h4" sx={{ color: "#007bff", fontWeight: "bold" }}>
+          Login
+        </Typography>
+
+        {/* ✅ Username Input */}
         <TextField
           fullWidth
           label="Username"
@@ -29,7 +42,16 @@ const LoginForm = ({ onLogin }) => {
           variant="outlined"
           value={credentials.username}
           onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
+          sx={{
+            backgroundColor: "#ffffff", // ✅ Light input background
+            borderRadius: "5px",
+            "& .MuiInputBase-root": {
+              color: "#000000", // ✅ Ensure text is black
+            },
+          }}
         />
+
+        {/* ✅ Password Input */}
         <TextField
           fullWidth
           label="Password"
@@ -38,9 +60,31 @@ const LoginForm = ({ onLogin }) => {
           variant="outlined"
           value={credentials.password}
           onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
+          sx={{
+            backgroundColor: "#ffffff", // ✅ Light input background
+            borderRadius: "5px",
+            "& .MuiInputBase-root": {
+              color: "#000000", // ✅ Ensure text is black
+            },
+          }}
         />
+
         {error && <Typography color="error">{error}</Typography>}
-        <Button fullWidth variant="contained" sx={{ mt: 2, backgroundColor: "#ff44ff", color: "black" }} onClick={handleLogin}>
+
+        {/* ✅ Login Button */}
+        <Button
+          fullWidth
+          variant="contained"
+          sx={{
+            mt: 3,
+            backgroundColor: "#007bff", // ✅ Changed from pink to blue
+            color: "#ffffff",
+            fontSize: "16px",
+            fontWeight: "bold",
+            "&:hover": { backgroundColor: "#0056b3" },
+          }}
+          onClick={handleLogin}
+        >
           Login
         </Button>
       </Box>
