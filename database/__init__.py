@@ -1,5 +1,5 @@
 from database.connection import engine, Base
-from database.models import User, Trade, TradingSession, BrokerConfig
+from database.models import User, Account, AIModel
 
 # ✅ Create all tables
 def init_db():

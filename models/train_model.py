@@ -15,7 +15,6 @@ import os
 from services.broker_service import UpstoxBroker
 from dotenv import load_dotenv
 
-from models.ai_trading_model import AutonomousTrader
 from models.training_report import TrainingReport
 
 logger = logging.getLogger(__name__)
