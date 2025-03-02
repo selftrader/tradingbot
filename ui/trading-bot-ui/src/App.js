@@ -26,18 +26,14 @@ const App = () => {
     <ThemeProviderWrapper>
       <CssBaseline />
       <Router>
-        {isLoggedIn && <Layout />}  {/* ✅ Navbar only shown after login */}
         <Routes>
-        <Route path="/" element={!isAuthenticated() ? <LandingPage /> : <Navigate to="/dashboard" />} />
-          <Route path="/login" element={isLoggedIn ? <Navigate to="/dashboard" /> : <LoginPage />} />
-          <Route path="/signup" element={isLoggedIn ? <Navigate to="/dashboard" /> : <SignupPage />} />
-          {/* ✅ Protect dashboard and other pages */}
-          <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-          <Route path="/trade-control" element={<PrivateRoute><TradeControlPage /></PrivateRoute>} />
-          <Route path="/config" element={<PrivateRoute><ConfigPage /></PrivateRoute>} />
-          <Route path="/analysis" element={<PrivateRoute><StockAnalysisPage /></PrivateRoute>} />
-          <Route path="/profile" element={<Navigate to="/" />} />
-
+          <Route path="/" element={isLoggedIn ? <Navigate to="/dashboard" /> : <LandingPage />} />
+          <Route path="/dashboard" element={<PrivateRoute><Layout><DashboardPage /></Layout></PrivateRoute>} />
+          <Route path="/trade-control" element={<PrivateRoute><Layout><TradeControlPage /></Layout></PrivateRoute>} />
+          <Route path="/config" element={<PrivateRoute><Layout><ConfigPage /></Layout></PrivateRoute>} />
+          <Route path="/analysis" element={<PrivateRoute><Layout><StockAnalysisPage /></Layout></PrivateRoute>} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
         </Routes>
       </Router>
     </ThemeProviderWrapper>

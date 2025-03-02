@@ -1,22 +1,24 @@
-import { createTheme } from "@mui/material/styles";
+import { createTheme } from '@mui/material/styles';
 
-const darkTheme = createTheme({
+const monochromeTheme = createTheme({
   palette: {
-    mode: "dark",
-    primary: { main: "#FF00D6" },
-    secondary: { main: "#7C3AED" },
-    background: { default: "#000000", paper: "#000000" },
-    text: { primary: "#ffffff", secondary: "#cccccc" },
+    mode: 'dark',
+    primary: { main: '#ffffff' },
+    secondary: { main: '#b0b0b0' },
+    background: { default: '#000000', paper: '#1a1a1a' },
+    text: { primary: '#ffffff', secondary: '#b0b0b0' },
   },
   typography: {
-    fontFamily: "Roboto, sans-serif",
-    h1: {
-      fontWeight: "bold",
-      background: "linear-gradient(90deg, #FF00D6, #7C3AED)",
-      WebkitBackgroundClip: "text",
-      WebkitTextFillColor: "transparent",
+    fontFamily: 'Roboto, sans-serif',
+    fontSize: 14,
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: { textTransform: 'none', color: '#ffffff', backgroundColor: '#333333', '&:hover': { backgroundColor: '#555555' } },
+      },
     },
   },
 });
 
-export  {darkTheme};  // ✅ Fixed missing export
+export default monochromeTheme;

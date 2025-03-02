@@ -205,8 +205,11 @@ class AIPerformance(Base):
 class BrokerConfig(Base):
     __tablename__ = "broker_configs"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     broker_name = Column(String, index=True)
+    api_key = Column(String, nullable=False)
+    api_secret = Column(String, nullable=False)
+    additional_params = Column(JSON, nullable=True)
     is_active = Column(Boolean, default=False)
     config = Column(JSON)
     created_at = Column(DateTime, default=func.now())
