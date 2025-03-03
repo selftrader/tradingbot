@@ -17,7 +17,6 @@ from database.connection import get_db
 from database.init_db import init_db
 from router.auth_router import  auth_router 
 from router.broker_router import broker_router
-from router.sector_router import sector_router
 
 # Load environment variables
 load_dotenv()
@@ -80,7 +79,6 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(broker_router, prefix="/broker", tags=["Broker API"])
 # app.include_router(analysis_router, prefix="/analysis", tags=["Market Analysis"])
-app.include_router(sector_router, prefix="/sector", tags=["Sector Analysis"])
 
 # Root API Endpoint
 @app.get("/")

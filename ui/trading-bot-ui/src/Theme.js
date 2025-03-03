@@ -5,8 +5,8 @@ const theme = createTheme({
     mode: "dark",
     primary: { main: "#ffffff" },
     secondary: { main: "#b0b0b0" },
-    accent: { main: "#2196F3" }, // ✅ NEW Accent Color
-    background: { default: "#0d1117", paper: "#161b22" }, // ✅ Dark Theme Tweaked
+    accent: { main: "#2196F3" },
+    background: { default: "#0d1117", paper: "#161b22" },
     text: { primary: "#ffffff", secondary: "#b0b0b0" },
   },
   typography: {
@@ -19,14 +19,14 @@ const theme = createTheme({
         root: {
           textTransform: "none",
           color: "#ffffff",
-          "&:hover": { backgroundColor: "#2196F3", color: "#ffffff" }, // ✅ NEW Hover Effect
+          "&:hover": { backgroundColor: "#2196F3", color: "#ffffff" },
         },
       },
     },
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: "#161b22", // ✅ Updated Navbar Color
+          backgroundColor: "#161b22",
         },
       },
     },

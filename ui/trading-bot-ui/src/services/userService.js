@@ -4,11 +4,27 @@ export const getUserProfile = async () => {
   const token = localStorage.getItem("token");
   if (!token) return null;
 
-  const response = await fetch(`${API_URL}/profile`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  try {
+    const response = await fetch(`${API_URL}/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-  return response.ok ? await response.json() : null;
+    if (!response.ok) {
+      console.error("Failed to fetch user profile");
+      return null;
+    }
+
+    const data = await response.json();
+    
+    // ✅ Ensure avatar field exists
+    return {
+      ...data,
+      avatar: data.avatar || "/assets/default-avatar.png",  // Fallback image
+    };
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    return null;
+  }
 };
 
 export const updateUserProfile = async (name) => {
