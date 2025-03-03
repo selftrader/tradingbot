@@ -1,40 +1,30 @@
-import React, { useState, useEffect } from "react";
-import { Container, Typography, TextField, Button, Box } from "@mui/material";
-import { getUserProfile, updateUserProfile } from "../services/userService";
+import React from "react";
+import { Container, Typography, Paper, Avatar, List, ListItem, ListItemText } from "@mui/material";
 
 const ProfilePage = () => {
-  const [user, setUser] = useState({ name: "", email: "" });
-  const [newName, setNewName] = useState("");
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      const data = await getUserProfile();
-      if (data) {
-        setUser(data);
-        setNewName(data.name);
-      }
-    };
-    fetchProfile();
-  }, []);
-
-  const handleUpdate = async () => {
-    const result = await updateUserProfile(newName);
-    if (result.success) {
-      setUser((prev) => ({ ...prev, name: newName }));
-      alert("Profile updated successfully!");
-    }
+  // Sample user data (Replace with API call later)
+  const user = {
+    name: "John Doe",
+    email: "johndoe@example.com",
+    tradingReports: ["Trade 1 - Profit: $500", "Trade 2 - Loss: $200", "Trade 3 - Profit: $300"],
   };
 
   return (
-    <Container sx={{ mt: 4, textAlign: "center", maxWidth: "sm" }}>
-      <Typography variant="h4">User Profile</Typography>
-      <Box sx={{ mt: 3 }}>
-        <TextField label="Email" value={user.email} fullWidth disabled sx={{ mb: 2 }} />
-        <TextField label="Name" value={newName} onChange={(e) => setNewName(e.target.value)} fullWidth sx={{ mb: 2 }} />
-        <Button variant="contained" color="primary" fullWidth onClick={handleUpdate}>
-          Update Profile
-        </Button>
-      </Box>
+    <Container maxWidth="md" sx={{ mt: 4 }}>
+      <Paper elevation={3} sx={{ p: 4, textAlign: "center" }}>
+        <Avatar sx={{ width: 80, height: 80, margin: "auto" }} alt="Profile Picture" src="/path/to/profile-pic.jpg" />
+        <Typography variant="h5" sx={{ mt: 2 }}>{user.name}</Typography>
+        <Typography variant="subtitle1" color="textSecondary">{user.email}</Typography>
+
+        <Typography variant="h6" sx={{ mt: 4 }}>Trading Reports</Typography>
+        <List>
+          {user.tradingReports.map((report, index) => (
+            <ListItem key={index}>
+              <ListItemText primary={report} />
+            </ListItem>
+          ))}
+        </List>
+      </Paper>
     </Container>
   );
 };

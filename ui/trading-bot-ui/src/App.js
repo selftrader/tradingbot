@@ -6,7 +6,7 @@ import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import TradeControlPage from "./pages/TradeControlPage";
-import ConfigPage from "./pages/ConfigPage";
+import ConfigPage from "./pages/BrokerConfigPage";
 import { isAuthenticated } from "./services/authService";
 import ThemeProviderWrapper from "./context/ThemeContext";
 import { CssBaseline } from "@mui/material";
