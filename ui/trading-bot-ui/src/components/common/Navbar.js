@@ -4,6 +4,7 @@ import { Menu as MenuIcon } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import ThemeToggle from "../settings/ThemeToggle";
 import { getUserProfile } from "../../services/userService";
+import { logout } from "../../services/authService";
 
 const Navbar = () => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -38,10 +39,9 @@ const Navbar = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token"); // ✅ Clear token
-    navigate("/login"); // ✅ Redirect to login
-    handleMenuClose();
-  };
+    console.log("🔴 Logging out...");
+    logout();  // ✅ This will redirect to `/`
+};
 
   return (
     <AppBar position="fixed" color="primary">

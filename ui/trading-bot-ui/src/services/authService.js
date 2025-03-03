@@ -39,9 +39,14 @@ export const login = async ({ email, password }) => {
 
 // ✅ Logout Function
 export const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("isLoggedIn");
-    window.dispatchEvent(new Event("storage"));  // ✅ Notify React components about logout
+    console.log("✅ Logout function called!");
+
+    // ✅ Clear authentication data
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("user");
+
+    // ✅ Redirect to Landing Page (`/`)
+    window.location.href = "/";  
 };
 
 // ✅ Check if user is authenticated
