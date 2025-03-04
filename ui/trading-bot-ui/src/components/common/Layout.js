@@ -16,14 +16,16 @@ const Layout = ({ children }) => {
     if (!isAuthenticated()) {
       navigate("/"); // ✅ Redirect to landing page if not authenticated
     }
-  }, []);
+  }, [navigate]);  // ✅ Fix: Added `navigate` as a dependency
 
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Navbar />
       <AppBar position="static" sx={{ bgcolor: "primary.main" }}>
         <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1, color: "text.primary" }}>Trading Bot Dashboard</Typography>
+          <Typography variant="h6" sx={{ flexGrow: 1, color: "text.primary" }}>
+            Trading Bot Dashboard
+          </Typography>
           <ThemeToggle />
           {isAuthenticated() ? (
             <>
