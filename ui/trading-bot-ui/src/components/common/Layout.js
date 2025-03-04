@@ -9,15 +9,14 @@ const Layout = ({ children }) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();
-    navigate("/", { replace: true }); // ✅ Ensures proper navigation
+    logout();  // ✅ Clear session and redirect to "/"
   };
 
   useEffect(() => {
     if (!isAuthenticated()) {
       navigate("/"); // ✅ Redirect to landing page if not authenticated
     }
-  }, []); // ✅ Ensures navigation is enforced on logout
+  }, []);
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -28,13 +27,11 @@ const Layout = ({ children }) => {
           <ThemeToggle />
           {isAuthenticated() ? (
             <>
-              <Button color="inherit" component={RouterLink} to="/dashboard" sx={{ color: "text.primary" }}>Dashboard</Button>
-              <Button color="inherit" component={RouterLink} to="/trade-control" sx={{ color: "text.primary" }}>Trade Control</Button>
-              <Button color="inherit" component={RouterLink} to="/config" sx={{ color: "text.primary" }}>Config</Button>
-              <Button color="inherit" onClick={handleLogout} sx={{ color: "text.primary" }}>Logout</Button>
+              <Button color="inherit" component={RouterLink} to="/dashboard">Dashboard</Button>
+              <Button color="inherit" onClick={handleLogout}>Logout</Button>
             </>
           ) : (
-            <Button color="inherit" component={RouterLink} to="/login" sx={{ color: "text.primary" }}>Login</Button>
+            <Button color="inherit" component={RouterLink} to="/login">Login</Button>
           )}
         </Toolbar>
       </AppBar>

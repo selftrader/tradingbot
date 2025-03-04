@@ -9,16 +9,19 @@ const SignupForm = () => {
   const navigate = useNavigate();
 
   const handleSignup = async () => {
+    setError("");  // ✅ Clear previous errors
+
     if (!form.username || !form.email.includes("@") || form.password.length < 8) {
       setError("Please enter valid details.");
       return;
     }
 
     const response = await signup(form);
-    if (response.success) {
-      navigate("/login"); // ✅ Redirect to login after successful signup
+    if (response.access_token) {  // ✅ Check for token in response
+      localStorage.setItem("token", response.access_token);  // ✅ Store token for authentication
+      navigate("/dashboard");  // ✅ Redirect to dashboard after successful signup
     } else {
-      setError(response.error);
+      setError(response.detail || "Signup failed. Try again.");
     }
   };
 

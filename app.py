@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 # Import database and models
 from database.connection import get_db
 from database.init_db import init_db
+from router.user_router import router as user_router 
 from router.auth_router import  auth_router 
 from router.broker_router import broker_router
 
@@ -78,6 +79,7 @@ app.add_middleware(
 # Include Routers
 app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(broker_router, prefix="/broker", tags=["Broker API"])
+app.include_router(user_router, prefix="/user", tags=["User Profile"])
 # app.include_router(analysis_router, prefix="/analysis", tags=["Market Analysis"])
 
 # Root API Endpoint

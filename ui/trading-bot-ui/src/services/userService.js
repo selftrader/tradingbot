@@ -5,7 +5,7 @@ export const getUserProfile = async () => {
   if (!token) return null;
 
   try {
-    const response = await fetch(`${API_URL}/profile`, {
+    const response = await fetch(`${API_URL}/user/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -31,7 +31,7 @@ export const updateUserProfile = async (name) => {
   const token = localStorage.getItem("token");
   if (!token) return { success: false };
 
-  const response = await fetch(`${API_URL}/profile`, {
+  const response = await fetch(`${API_URL}/user/profile`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ name }),

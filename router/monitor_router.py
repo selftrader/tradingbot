@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from database.connection import get_db
 from database.models import Position, Trade
 from services.strategy_service import StrategyService
-from services.trading_service import TradingService
 from services.model_trainer_service import ModelTrainerService
 from typing import List, Dict
 import asyncio
@@ -13,7 +12,6 @@ import pandas as pd
 import numpy as np
 from services.live_market_service import LiveMarketService
 from services.upstox_service import UpstoxService
-from services.advanced_prediction_service import AdvancedStockPredictor
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/monitor", tags=["monitoring"])
@@ -21,7 +19,7 @@ router = APIRouter(prefix="/api/monitor", tags=["monitoring"])
 class AutoTrader:
     def __init__(self, db: Session):
         self.strategy_service = StrategyService(db)
-        self.trading_service = TradingService(db)
+        # self.trading_service = TradingService(db)
         self.model_trainer = ModelTrainerService()
         self.is_active = False
         self.min_confidence = 0.7
@@ -40,7 +38,7 @@ class AutoTrader:
             redirect_uri="YOUR_REDIRECT_URI"
         )
         self.live_market = LiveMarketService(self.broker)
-        self.predictor = AdvancedStockPredictor()
+        # self.predictor = AdvancedStockPredictor()
 
     async def start(self):
         """Start trading with broker connection"""

@@ -2,19 +2,18 @@ import React, { useState } from "react";
 import { Drawer, TextField, Button, Typography, Box, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { login, signup } from "../../services/authService";
-import { useNavigate } from "react-router-dom";
 
-const AuthModal = ({ open, handleClose }) => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [credentials, setCredentials] = useState({ email: "", password: "" }); // ✅ Remove username
+const AuthModal = ({ open, handleClose, onLoginSuccess, isLogin, setIsLogin }) => {
+  const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
-  const navigate = useNavigate();
 
   const handleAuth = async () => {
     const response = isLogin ? await login(credentials) : await signup(credentials);
     if (response.success) {
-      handleClose();
-      setCredentials({ email: "", password: "" }); // ✅ Reset email & password
+      handleClose();  // ✅ Close modal after login
+      setCredentials({ email: "", password: "" }); 
+      window.dispatchEvent(new Event("storage"));  // ✅ Notify React components
+      onLoginSuccess();  // ✅ Navigate to dashboard
     } else {
       setError(response.error);
     }
@@ -66,6 +65,7 @@ const AuthModal = ({ open, handleClose }) => {
           {isLogin ? "Login" : "Sign Up"}
         </Button>
 
+        {/* ✅ Toggle between Login & Signup inside modal */}
         <Button fullWidth sx={{ mt: 2 }} onClick={() => setIsLogin(!isLogin)}>
           {isLogin ? "Need an account? Sign Up" : "Already have an account? Login"}
         </Button>

@@ -42,12 +42,17 @@ export const logout = () => {
     console.log("✅ Logout function called!");
 
     // ✅ Clear authentication data
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    localStorage.removeItem("isLoggedIn");
+
+    // ✅ Notify all components to update UI
+    window.dispatchEvent(new Event("storage")); 
 
     // ✅ Redirect to Landing Page (`/`)
-    window.location.href = "/";  
+    window.location.href = "/";
 };
+
+
 
 // ✅ Check if user is authenticated
 export const isAuthenticated = () => !!localStorage.getItem("token");
