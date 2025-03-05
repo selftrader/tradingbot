@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse, JSONResponse, HTMLResponse
 from pydantic import BaseModel
 from typing import Dict, Optional
 import requests
-from config import UPSTOX_REDIRECT_URI  # Import the redirect URI
+from config_router import UPSTOX_REDIRECT_URI  # Import the redirect URI
 
 # Initialize router without prefix
 router = APIRouter()
