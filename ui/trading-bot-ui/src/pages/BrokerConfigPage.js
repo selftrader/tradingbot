@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Box, Typography, TextField, Button, Card, CardContent } from "@mui/material";  // ✅ Removed Select & MenuItem
+import { Box, Typography, TextField, Button, Card, CardContent } from "@mui/material";
 
 const BrokerConfigPage = () => {
     const [brokers, setBrokers] = useState([]);
@@ -10,30 +10,38 @@ const BrokerConfigPage = () => {
         fetchBrokers();
     }, []);
 
-    const fetchBrokers = () => {
-        axios.get("/api/brokers")
-            .then(response => setBrokers(response.data))
-            .catch(error => console.error("Error fetching brokers:", error));
+    const fetchBrokers = async () => {
+        try {
+            const response = await axios.get("/api/brokers");
+            setBrokers(Array.isArray(response.data) ? response.data : []); // ✅ Ensure it's always an array
+        } catch (error) {
+            console.error("Error fetching brokers:", error);
+            setBrokers([]); // ✅ Fallback to an empty array to prevent `.map()` errors
+        }
     };
 
-    const addBroker = () => {
+    const addBroker = async () => {
         if (!newBroker.name || !newBroker.apiKey || !newBroker.apiSecret) {
             alert("Please enter all required fields.");
             return;
         }
 
-        axios.post("/api/brokers", newBroker)
-            .then(() => {
-                fetchBrokers();
-                setNewBroker({ name: "", apiKey: "", apiSecret: "", trade_percentage: 0 });
-            })
-            .catch(error => console.error("Error adding broker:", error));
+        try {
+            await axios.post("/api/brokers", newBroker);
+            fetchBrokers();
+            setNewBroker({ name: "", apiKey: "", apiSecret: "", trade_percentage: 0 });
+        } catch (error) {
+            console.error("Error adding broker:", error);
+        }
     };
 
-    const deleteBroker = (brokerId) => {
-        axios.delete(`/api/brokers/${brokerId}`)
-            .then(() => fetchBrokers())
-            .catch(error => console.error("Error deleting broker:", error));
+    const deleteBroker = async (brokerId) => {
+        try {
+            await axios.delete(`/api/brokers/${brokerId}`);
+            fetchBrokers();
+        } catch (error) {
+            console.error("Error deleting broker:", error);
+        }
     };
 
     return (

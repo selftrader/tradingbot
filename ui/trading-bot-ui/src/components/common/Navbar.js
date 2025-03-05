@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { AppBar, Toolbar, Typography, IconButton, Menu, MenuItem, Avatar, Button, Box } from "@mui/material";
-import { Menu as MenuIcon } from "@mui/icons-material";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 import ThemeToggle from "../settings/ThemeToggle";
 import { getUserProfile } from "../../services/userService";
@@ -43,9 +42,9 @@ const Navbar = () => {
   return (
     <AppBar position="fixed" color="primary">
       <Toolbar sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <IconButton edge="start" color="inherit" aria-label="menu">
+        {/* <IconButton edge="start" color="inherit" aria-label="menu">
           <MenuIcon />
-        </IconButton>
+        </IconButton> */}
         <Typography variant="h6" sx={{ flexGrow: 1 }}>Trading Bot</Typography>
         
         {/* ✅ Navigation Buttons inside Navbar */}
