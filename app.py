@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from database.connection import get_db
 from database.init_db import init_db
 from router.user_router import router as user_router 
-from router.auth_router import  auth_router 
+from router.auth_router import auth_router
 from router.broker_router import broker_router
 
 # Load environment variables
@@ -47,8 +47,6 @@ async def lifespan(app: FastAPI):
     yield
 
     logger.info("⚠️ Shutting down application...")
-    if hasattr(app.state, "trading_controller"):
-        await app.state.trading_controller.disconnect()
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -58,31 +56,36 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Initialize SocketIO
+# ✅ Initialize SocketIO with proper CORS handling
 sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 sio_app = socketio.ASGIApp(sio, other_asgi_app=app)
 
-
+# ✅ CORS Configuration for FastAPI
 origins = [
-    "https://resplendent-shortbread-e830d3.netlify.app",  # ✅ Your Netlify frontend URL
-    "http://localhost:3000"  # ✅ Allow local development
+    "https://resplendent-shortbread-e830d3.netlify.app",  # ✅ Netlify frontend
+    "http://localhost:3000",  # ✅ Local development frontend
 ]
-# Add Middleware
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Change this to specific frontend URL for security
+    allow_origins=origins,  # ✅ Allow frontend URLs explicitly
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # ✅ Explicitly allow all necessary methods
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],  # ✅ Necessary headers
+    expose_headers=["Content-Disposition"],  # ✅ If required for file downloads
 )
 
-# Include Routers
+# ✅ Debug Preflight Requests
+@app.options("/{full_path:path}")
+async def preflight_handler(full_path: str):
+    return JSONResponse(content={"message": "Preflight OK"}, status_code=200)
+
+# ✅ Include Routers
 app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(broker_router, prefix="/broker", tags=["Broker API"])
 app.include_router(user_router, prefix="/user", tags=["User Profile"])
-# app.include_router(analysis_router, prefix="/analysis", tags=["Market Analysis"])
 
-# Root API Endpoint
+# ✅ Root API Endpoint
 @app.get("/")
 async def root():
     return {
@@ -90,22 +93,21 @@ async def root():
         "timestamp": datetime.now().isoformat(),
     }
 
-# API Health Check
+# ✅ API Health Check
 @app.get("/health")
 async def health_check():
-    trading_controller = getattr(app.state, "trading_controller", None)
     return {
         "status": "ok",
         "timestamp": datetime.now().isoformat(),
     }
 
-# Global Exception Handler
+# ✅ Global Exception Handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"🔥 Global error: {str(exc)}")
     return JSONResponse(status_code=500, content={"error": str(exc)})
 
-# Start FastAPI Server
+# ✅ Start FastAPI Server
 if __name__ == "__main__":
     logger.info("🚀 Starting FastAPI Trading Bot Server...")
     uvicorn.run(
