@@ -41,6 +41,4 @@ A full-stack trading bot application for configuring broker accounts, monitoring
    cd /path/to/tradingapp-main/tradingapp-main
 ```
 
-## Folder Structure
-
-trading_bot_ai/ ├── README.md ├── requirements.txt ├── config.py ├── global_state.py ├── main.py ├── data/ │ └── sample_data.csv ├── logs/ │ └── bot.log ├── models/ │ ├── init.py │ ├── predictor.py │ └── learning_module.py ├── broker/ │ ├── init.py │ ├── base_broker.py │ ├── dhan_api.py │ └── multi_broker_api.py ├── strategies/ │ ├── init.py │ └── strategy.py ├── ui/ │ ├── app.py │ └── templates/ │ └── index.html ├── utils/ │ ├── init.py │ ├── logger.py │ ├── data_loader.py │ └── trade_history.py └── tests/ └── test_strategy.py
+[![Netlify Status](https://api.netlify.com/api/v1/badges/c269af19-e741-48b2-84e2-236f5a75a251/deploy-status)](https://app.netlify.com/sites/resplendent-shortbread-e830d3/deploys)

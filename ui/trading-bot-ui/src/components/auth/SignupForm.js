@@ -4,7 +4,7 @@ import { signup } from "../../services/authService";
 import { useNavigate } from "react-router-dom";
 
 const SignupForm = () => {
-  const [form, setForm] = useState({ username: "", email: "", password: "" });
+  const [form, setForm] = useState({ fullname: "", email: "", password: "" });
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
@@ -29,7 +29,7 @@ const SignupForm = () => {
     <Container maxWidth="sm">
       <Box sx={{ textAlign: "center", mt: 10, padding: "20px", borderRadius: "10px" }}>
         <Typography variant="h4">Signup</Typography>
-        <TextField fullWidth label="Username" margin="normal" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+        <TextField fullWidth label="Full Name" margin="normal" value={form.fullname} onChange={(e) => setForm({ ...form, fullname: e.target.value })} />
         <TextField fullWidth label="Email" margin="normal" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
         <TextField fullWidth label="Password" type="password" margin="normal" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
         {error && <Typography color="error">{error}</Typography>}

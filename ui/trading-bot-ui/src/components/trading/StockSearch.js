@@ -32,6 +32,7 @@ const StockSearch = ({ onSearch }) => {
         <TextField select label="Exchange" value={exchange} fullWidth onChange={(e) => setExchange(e.target.value)}>
           <MenuItem value="NSE">NSE</MenuItem>
           <MenuItem value="BSE">BSE</MenuItem>
+          <MenuItem value="MCX">MCX</MenuItem>
         </TextField>
       </Grid>
       <Grid item xs={6} md={3}>

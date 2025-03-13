@@ -5,7 +5,7 @@ import os
 import sys
 from dotenv import load_dotenv
 
-# ✅ Fix Import Path for `database/`
+#Fix Import Path for `database/`
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # ✅ Load Environment Variables
@@ -28,7 +28,7 @@ target_metadata = Base.metadata
 def get_url():
     db_url = os.getenv("DATABASE_URL")
     if not db_url:
-        raise ValueError("❌ DATABASE_URL is not set in .env file")
+        raise ValueError("DATABASE_URL is not set in .env file")
     return db_url
 
 # ✅ Offline Migrations (SQL Script Generation)

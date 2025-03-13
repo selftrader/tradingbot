@@ -1,66 +1,114 @@
-import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime, timedelta, timezone
+from fastapi import APIRouter, Depends, HTTPException, status
+import logging
 import jwt
 from sqlalchemy.orm import Session
+from database.schemas import UserEmailLogin, UserSignup, OTPVerification, UserResponse, AuthResponse, OTPResponse
 from pydantic import BaseModel, EmailStr  # ✅ Email validation
 from database.connection import get_db
-from database.models import User
+from database.models import OTP, User
 from passlib.context import CryptContext
+from services.otp_service import generate_otp, send_otp_twilio, store_otp
+
+# Function to hash passwords
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
 
 # ✅ Import SECRET_KEY from `auth_service` (NOT `broker_router`)
-from services.auth_service import SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM
+from services.auth_service import SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, verify_password
 
 auth_router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# ✅ Models for Signup & Login
-class UserSignup(BaseModel):
-    username: str
-    email: EmailStr  # ✅ Ensures valid email format
-    password: str
-
-class UserLogin(BaseModel):
-    email: EmailStr  # ✅ Login using email
-    password: str
-
-# ✅ Generate JWT Token
-def create_access_token(username: str):
-    expiration = datetime.datetime.utcnow() + datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    token_data = {"sub": username, "exp": expiration}
-    return jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
+#  Generate JWT Token
+def create_access_token(email: str):
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)  # ✅ Fix here
+    payload = {"sub": email, "exp": expire}
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 # ✅ Signup Route
-@auth_router.post("/signup")
+@auth_router.post("/signup", status_code=status.HTTP_201_CREATED)
 def signup(user: UserSignup, db: Session = Depends(get_db)):
-    """Registers a new user and returns a JWT token."""
-    existing_user = db.query(User).filter(User.email == user.email).first()
+    """Registers a new user and sends OTP via SMS for verification."""
+    existing_user = db.query(User).filter(
+        (User.email == user.email) | (User.phone_number == user.phone_number)
+    ).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    hashed_password = pwd_context.hash(user.password)
+    existing_phone = db.query(User).filter(User.phone_number == user.phone_number).first()
+    if existing_phone:
+        raise HTTPException(status_code=400, detail="Phone number already registered")
 
-    # ✅ Ensure password is stored in `password_hash`
-    new_user = User(username=user.username, email=user.email, password_hash=hashed_password)
+    otp_code = generate_otp()
+
+    if send_otp_twilio(user.country_code,user.phone_number, otp_code):
+        store_otp(db,user.phone_number, otp_code)  # ✅ Store OTP in DB
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send OTP. Try again.")
+
+    new_user = User(
+        full_name=user.full_name,
+        email=user.email,
+        phone_number=user.phone_number,
+        password_hash=hash_password(user.password),
+        isVerified=False
+    )
     db.add(new_user)
     db.commit()
-    db.refresh(new_user)
 
-    # ✅ Generate token for immediate login
-    token = create_access_token(new_user.username)
+    return {"message": "OTP sent to your phone. Please verify to complete signup."}
 
-    return {"message": "Signup successful", "access_token": token, "token_type": "bearer"}
 
-# ✅ Updated Login Route to Accept Email
+# ✅ Detects whether the identifier is an email or phone number
+def is_email(identifier: str) -> bool:
+    return "@" in identifier
+
+# ✅ Combined Login Route for Email & Phone Login
 @auth_router.post("/login")
-def login(user: UserLogin, db: Session = Depends(get_db)):
-    """Authenticates user and returns a JWT token."""
+async def login(user: UserEmailLogin, db: Session = Depends(get_db)):
+    """Handles login using email/password."""
     db_user = db.query(User).filter(User.email == user.email).first()
 
-    # ✅ Fix: Use `password_hash` instead of `password`
-    if not db_user or not pwd_context.verify(user.password, db_user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
 
-    # ✅ Generate token after successful login
-    token = create_access_token(db_user.username)
+    if not verify_password(user.password, db_user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    if not db_user.isVerified:
+        raise HTTPException(status_code=403, detail="Account not verified. Please verify OTP.")
 
+    # ✅ Generate JWT token after successful login
+    token = create_access_token(db_user.email)
     return {"message": "Login successful", "access_token": token, "token_type": "bearer"}
+
+@auth_router.post("/verify-otp", status_code=status.HTTP_200_OK)
+def verify_otp(data: OTPVerification, db: Session = Depends(get_db)):
+    """Verifies OTP and activates user account."""
+    otp_record = db.query(OTP).filter(
+        (OTP.phone_number == data.phone_number) & (OTP.otp_code == data.otp)
+    ).first()
+
+    if not otp_record:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    # ✅ Convert expires_at to timezone-aware datetime
+    expires_at_aware = otp_record.expires_at.replace(tzinfo=timezone.utc)
+
+    if expires_at_aware < datetime.now(timezone.utc):
+        db.delete(otp_record)  # ✅ Automatically delete expired OTPs
+        db.commit()
+        raise HTTPException(status_code=400, detail="OTP has expired. Please request a new one.")
+
+    user = db.query(User).filter(User.phone_number == data.phone_number).first()
+
+    if user:
+        user.isVerified = True
+        db.commit()
+        db.refresh(user)
+
+    db.delete(otp_record)  # ✅ Delete OTP after successful verification
+    db.commit()
+
+    return {"message": "Phone number verified successfully. You can now log in."}
