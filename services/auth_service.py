@@ -1,4 +1,5 @@
 from fastapi import Depends, HTTPException, status
+from jose import JWTError
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 import jwt
@@ -44,18 +45,35 @@ class AuthService:
 
 # ✅ Add `get_current_user` function
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    """Get the currently authenticated user from the JWT token"""
+    """
+    Extract user from JWT token.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
         if username is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
 
     user = db.query(User).filter(User.username == username).first()
     if user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+        raise credentials_exception
+
     return user
+
+
+
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def hash_password(password: str):
+    return pwd_context.hash(password)

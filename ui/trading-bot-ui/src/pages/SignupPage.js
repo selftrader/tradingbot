@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { signup } from "../services/authService";
 
 const SignupPage = () => {
-    const [form, setForm] = useState({ username: "", email: "", password: "" });
+    const [form, setForm] = useState({ fullname: "", email: "", password: "" });
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
 
@@ -46,7 +46,7 @@ const SignupPage = () => {
             {error && <p style={{ color: "red" }}>{error}</p>}
             {message && <p style={{ color: "green" }}>{message}</p>}
             <form onSubmit={handleSignup}>
-                <input type="text" placeholder="Username" required onChange={(e) => setForm({ ...form, username: e.target.value })} />
+                <input type="text" placeholder="Full Name" required onChange={(e) => setForm({ ...form, fullname: e.target.value })} />
                 <input type="email" placeholder="Email" required onChange={(e) => setForm({ ...form, email: e.target.value })} />
                 <input type="password" placeholder="Password" required onChange={(e) => setForm({ ...form, password: e.target.value })} />
                 <button type="submit">Sign Up</button>

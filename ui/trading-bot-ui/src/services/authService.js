@@ -9,33 +9,109 @@ export const signup = async (credentials) => {
             body: JSON.stringify(credentials),
         });
 
-        return response.ok ? { success: true } : { success: false, error: "Signup failed" };
+        const data = await response.json();
+
+        if (!response.ok) {
+            return { 
+                success: false, 
+                message: Array.isArray(data.detail?.errors) 
+                    ? data.detail.errors.join(", ")  // ✅ Properly format multiple errors
+                    : "Signup failed"
+            };
+        }
+
+        return { success: true, message: "Signup successful" };
     } catch (error) {
-        return { success: false, error: "Server error" };
+        return { success: false, message: "Server error. Please try again later." };
     }
 };
 
-// ✅ Login API Call (Sends email instead of username)
-export const login = async ({ email, password }) => {
-  try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),  // ✅ Send email, NOT username
-      });
+// ✅ OTP Verification API Call
+export const verifyOtp = async (phone, countryCode, otp) => {
+    try {
+        const response = await fetch(`${API_URL}/api/auth/verify-otp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone_number: phone, country_code: countryCode, otp }),
+        });
 
-      if (!response.ok) return { success: false, error: "Invalid credentials" };
+        const data = await response.json();
 
-      const data = await response.json();
+        if (!response.ok) {
+            return { 
+                success: false, 
+                message: data.detail === "OTP has expired. Please request a new one."
+                    ? "Your OTP has expired. Please request a new one."
+                    : data.detail || "OTP verification failed."
+            };
+        }
+
+        return { success: true, message: data.message };
+    } catch (error) {
+        return { success: false, message: "Server error. Please try again later." };
+    }
+};
+
+export const resendOtp = async (phone_number, country_code,otp) => {
+    try {
+        const response = await fetch("/api/auth/resend-otp", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ phone_number, country_code }),
+        });
+
+        return await response.json();
+    } catch (error) {
+        console.error("Resend OTP Error:", error);
+        return { success: false, message: "Failed to resend OTP" };
+    }
+};
+
+
+
+
+
+// ✅ Detects if the identifier is an email or phone number
+// const isEmail = (identifier) => /\S+@\S+\.\S+/.test(identifier);
+
+// ✅ Login API Call (Handles Email & Phone Login)
+export const login = async (credentials) => {
+    try {
+        console.log("🟢 Login Function Received:", credentials);
+
+        const requestData = {
+            email: credentials.email,
+            password: credentials.password
+        };
+
+        console.log("🟢 Login Request Data:", requestData);
+
+        const response = await fetch(`${API_URL}/api/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestData),
+        });
+
+        const data = await response.json();
+        console.log("🔴 API Response:", data); // ✅ Debugging Response
+
+        if (!response.ok) {
+            return { success: false, message: data.detail || "Login failed" };
+        }
+
       localStorage.setItem("token", data.token);
       localStorage.setItem("isLoggedIn", "true");  // ✅ Store login state
-      window.dispatchEvent(new Event("storage"));  // ✅ Notify React components
-
-      return { success: true };
-  } catch (error) {
-      return { success: false, error: "Server error" };
-  }
+      window.dispatchEvent(new Event("storage"));
+        return { success: true, message: data.message, access_token: data.access_token };
+    } catch (error) {
+        console.error("🔴 Login Request Failed:", error);
+        return { success: false, message: "Server error. Please try again later." };
+    }
 };
+
+
 
 // ✅ Logout Function
 export const logout = () => {

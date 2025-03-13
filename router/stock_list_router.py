@@ -1,25 +1,26 @@
-
-
-
-from fastapi import APIRouter, Depends
-from requests import Session
-
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
 from database.connection import get_db
+from database.models import Stock  # Ensure the Stock model is defined
 
+stock_list_router = APIRouter()
 
-router = APIRouter()
+@stock_list_router.get("/search", tags=["Stock Data"])
+async def search_stocks(
+    exchange: str = Query("NSE"),
+    symbol: str = Query(None),  # Optional filtering by symbol
+    name: str = Query(None),  # Optional filtering by stock name
+    db: Session = Depends(get_db)
+):
+    """Fetch only the stocks that are added for trading execution."""
+    query = db.query(Stock).filter(Stock.exchange == exchange)
 
+    if symbol:
+        query = query.filter(Stock.symbol.ilike(f"%{symbol}%"))  # Case-insensitive search
+    if name:
+        query = query.filter(Stock.name.ilike(f"%{name}%"))  # Case-insensitive search
 
-@router.get("api/stocks/available")
-async def get_available_stocks(db: Session = Depends(get_db)):
-    """Get list of available stocks"""
-    # For demonstration, return a static list. In practice, fetch from a DB or third-party service.
-     
-    stocks = [
-        {"symbol": "NIFTY", "name": "Nifty 50", "sector": "NIFTY50"},
-        {"symbol": "BANKNIFTY", "name": "Bank Nifty", "sector": "BANKNIFTY"},
-        {"symbol": "RELIANCE", "name": "Reliance Industries", "sector": "NIFTY50"},
-        {"symbol": "TCS", "name": "Tata Consultancy Services", "sector": "IT"}
-    ]
+    stocks = query.all()
 
     return stocks
+
