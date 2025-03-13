@@ -3,7 +3,6 @@ import axios from "axios";
 
 import { Box, Typography, TextField, Button, Card, CardContent, Select, MenuItem, CircularProgress } from "@mui/material";
 
-import { Box, Typography, TextField, Button, Card, CardContent } from "@mui/material";
 
 const BrokerConfigPage = ({ userId }) => {
     const [brokers, setBrokers] = useState([]);
@@ -32,46 +31,36 @@ const BrokerConfigPage = ({ userId }) => {
     // Add a new broker
     const addBroker = async () => {
         if (!newBroker.broker_name || !newBroker.api_key || !newBroker.api_secret) {
-    const fetchBrokers = async () => {
-        try {
-            const response = await axios.get("/api/brokers");
-            setBrokers(Array.isArray(response.data) ? response.data : []); // ✅ Ensure it's always an array
-        } catch (error) {
-            console.error("Error fetching brokers:", error);
-            setBrokers([]); // ✅ Fallback to an empty array to prevent `.map()` errors
-        }
-    };
-
-    const addBroker = async () => {
-        if (!newBroker.name || !newBroker.apiKey || !newBroker.apiSecret) {
-            alert("Please enter all required fields.");
+            alert("Please fill in all fields");
             return;
         }
-
         try {
-            const response = await axios.post("/api/brokers/connect", { user_id: userId, ...newBroker });
-            setBrokers((prevBrokers) => [...prevBrokers, response.data]); // Optimistic update
+            setLoading(true);
+            await axios.post(`/api/brokers/add/${userId}`, newBroker);
             setNewBroker({ broker_name: "", api_key: "", api_secret: "" });
-
-            await axios.post("/api/brokers", newBroker);
             fetchBrokers();
-            setNewBroker({ name: "", apiKey: "", apiSecret: "", trade_percentage: 0 });
         } catch (error) {
             console.error("Error adding broker:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
-    // Delete a broker
+    // Add deleteBroker function
     const deleteBroker = async (brokerId) => {
+        if (!window.confirm("Are you sure you want to remove this broker?")) {
+            return;
+        }
+        
         try {
-            await axios.delete(`/api/brokers/disconnect/${brokerId}`);
-            setBrokers((prevBrokers) => prevBrokers.filter((broker) => broker.id !== brokerId)); // Optimistic update
-    const deleteBroker = async (brokerId) => {
-        try {
-            await axios.delete(`/api/brokers/${brokerId}`);
-            fetchBrokers();
+            setLoading(true);
+            await axios.delete(`/api/brokers/delete/${userId}/${brokerId}`);
+            await fetchBrokers(); // Refresh the list after deletion
         } catch (error) {
             console.error("Error deleting broker:", error);
+            alert("Failed to delete broker");
+        } finally {
+            setLoading(false);
         }
     };
 
