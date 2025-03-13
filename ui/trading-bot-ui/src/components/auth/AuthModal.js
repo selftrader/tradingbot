@@ -3,9 +3,7 @@ import {
     Drawer, TextField, Button, Typography, Box, IconButton, Link, Alert, Select,
     MenuItem, InputLabel, FormControl, CircularProgress
 } from "@mui/material";
-import { Drawer, TextField, Button, Typography, Box, IconButton, Link } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import { useNavigate } from "react-router-dom"; // ✅ Import useNavigate
 import { login, signup, verifyOtp } from "../../services/authService";
 
 const countryCodes = [
@@ -16,7 +14,6 @@ const countryCodes = [
 ];
 
 const AuthModal = ({ open, handleClose, onLoginSuccess, isLogin, setIsLogin }) => {
-    const navigate = useNavigate(); // ✅ Initialize useNavigate
     const [credentials, setCredentials] = useState({
         fullname: "", identifier: "", phone: "", countryCode: "+1", password: ""
     });
@@ -43,6 +40,7 @@ const AuthModal = ({ open, handleClose, onLoginSuccess, isLogin, setIsLogin }) =
             let response;
 
             if (isLogin) {
+                // ✅ LOGIN: Email & Password Only
                 response = await login({
                     email: credentials.identifier,
                     password: credentials.password
@@ -52,6 +50,7 @@ const AuthModal = ({ open, handleClose, onLoginSuccess, isLogin, setIsLogin }) =
                     handleSuccess();
                 }
             } else {
+                // ✅ SIGNUP: Require Email & Phone
                 response = await signup({
                     full_name: credentials.fullname,
                     email: credentials.identifier,
@@ -61,7 +60,7 @@ const AuthModal = ({ open, handleClose, onLoginSuccess, isLogin, setIsLogin }) =
                 });
 
                 if (response.success) {
-                    setShowOtpField(true);
+                    setShowOtpField(true); // ✅ Show OTP field for signup verification
                 }
             }
 
@@ -92,19 +91,16 @@ const AuthModal = ({ open, handleClose, onLoginSuccess, isLogin, setIsLogin }) =
         }
     };
 
-    // ✅ Handle Success (Redirect to Dashboard)
+    // ✅ Handle Success (Reset State)
     const handleSuccess = () => {
-        console.log("✅ Login Successful, Navigating to /dashboard");
         setShowOtpField(false);
         handleClose();
         setCredentials({ fullname: "", identifier: "", phone: "", countryCode: "+91", password: "" });
         window.dispatchEvent(new Event("storage"));
         onLoginSuccess();
-
-        navigate("/dashboard", { replace: true }); // ✅ Redirect to Dashboard
     };
 
-    // ✅ Handle Errors
+    // ✅ Handle Errors (Ensure String Formatting)
     const handleError = (message) => {
         console.log("🔴 API Error Response:", message);
         let errorMessage = "Something went wrong.";
@@ -112,9 +108,9 @@ const AuthModal = ({ open, handleClose, onLoginSuccess, isLogin, setIsLogin }) =
         if (typeof message === "string") {
             errorMessage = message;
         } else if (Array.isArray(message)) {
-            errorMessage = message.map(err => err.msg).join(", ");
+            errorMessage = message.map(err => err.msg).join(", "); // ✅ Convert array to string
         } else if (typeof message === "object") {
-            errorMessage = JSON.stringify(message);
+            errorMessage = JSON.stringify(message); // ✅ Convert object to string
         }
 
         setError(errorMessage);
@@ -186,7 +182,7 @@ const AuthModal = ({ open, handleClose, onLoginSuccess, isLogin, setIsLogin }) =
                         <TextField
                             fullWidth
                             label="Email"
-                            name="identifier"
+                            name="identifier"  // ✅ Always use as email
                             variant="outlined"
                             margin="normal"
                             value={credentials.identifier}
@@ -258,96 +254,6 @@ const AuthModal = ({ open, handleClose, onLoginSuccess, isLogin, setIsLogin }) =
             </Box>
         </Drawer>
     );
-=======
-  const [credentials, setCredentials] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
-
-  const handleAuth = async () => {
-    const response = isLogin ? await login(credentials) : await signup(credentials);
-    if (response.success) {
-      handleClose();  // ✅ Close modal after login
-      setCredentials({ email: "", password: "" }); 
-      window.dispatchEvent(new Event("storage"));  // ✅ Notify React components
-      onLoginSuccess();  // ✅ Navigate to dashboard
-    } else {
-      setError(response.error);
-    }
-  };
-
-  return (
-    <Drawer anchor="right" open={open} onClose={handleClose}>
-      <Box sx={{ width: 350, p: 4, bgcolor: "background.default", color: "text.primary" }}>
-        <IconButton onClick={handleClose} sx={{ position: "absolute", top: 10, right: 10 }}>
-          <CloseIcon />
-        </IconButton>
-
-        <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
-          {isLogin ? "Login" : "Sign Up"}
-        </Typography>
-
-        {!isLogin && (
-          <TextField
-            fullWidth
-            label="Username"
-            variant="outlined"
-            margin="normal"
-            onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
-            sx={{ bgcolor: "background.paper" }}
-          />
-        )}
-
-        <TextField
-          fullWidth
-          label="Email"
-          variant="outlined"
-          margin="normal"
-          value={credentials.email}
-          onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
-          sx={{ bgcolor: "background.paper" }}
-        />
-
-        <TextField
-          fullWidth
-          label="Password"
-          type="password"
-          variant="outlined"
-          margin="normal"
-          value={credentials.password}
-          onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-          sx={{ bgcolor: "background.paper" }}
-        />
-
-        {error && <Typography color="error">{error}</Typography>}
-
-        <Button fullWidth variant="contained" sx={{ mt: 2 }} onClick={handleAuth}>
-          {isLogin ? "Login" : "Sign Up"}
-        </Button>
-
-        {/* ✅ Improved Login/Signup Toggle for Dark Mode */}
-        <Typography
-          variant="body2"
-          sx={{
-            mt: 2,
-            textAlign: "center",
-            color: "text.primary",
-          }}
-        >
-          {isLogin ? "Need an account? " : "Already have an account? "}
-          <Link
-            onClick={() => setIsLogin(!isLogin)}
-            sx={{
-              cursor: "pointer",
-              color: "primary.main",
-              fontWeight: "bold",
-              textDecoration: "underline",
-            }}
-          >
-            {isLogin ? "Sign Up" : "Login"}
-          </Link>
-        </Typography>
-      </Box>
-    </Drawer>
-  );
 };
 
 export default AuthModal;
