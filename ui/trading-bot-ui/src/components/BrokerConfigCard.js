@@ -12,6 +12,7 @@ import {
 import { Edit, Delete, CheckCircle, Error } from '@mui/icons-material';
 
 const BrokerConfigCard = ({ config, onEdit, onDelete, onToggleActive }) => {
+  // ✅ Determine Status Color Dynamically
   const getStatusColor = (status) => {
     switch (status) {
       case 'connected':
@@ -32,18 +33,18 @@ const BrokerConfigCard = ({ config, onEdit, onDelete, onToggleActive }) => {
       border: '1px solid #333' 
     }}>
       <CardContent>
-        {/* Header: Username and Status Chips */}
+        {/* ✅ Header: Username and Status Chips */}
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography 
             variant="h6" 
             component="div" 
             sx={{ fontWeight: 'bold', color: '#fff' }}
           >
-            recscse
+            {config.username || "Unknown User"} {/* ✅ Fix for dynamic username */}
           </Typography>
           <Box>
             <Chip
-              label={config.status}
+              label={config.status || "Unknown"}
               color={getStatusColor(config.status)}
               size="small"
               sx={{ mr: 1 }}
@@ -56,15 +57,15 @@ const BrokerConfigCard = ({ config, onEdit, onDelete, onToggleActive }) => {
           </Box>
         </Box>
 
-        {/* Body: Created date and Action Buttons */}
+        {/* ✅ Body: Created Date and Action Buttons */}
         <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
           <Typography color="text.secondary" variant="body2">
-            Created: {new Date(config.created_at).toLocaleString()}
+            Created: {config.created_at ? new Date(config.created_at).toLocaleString() : "N/A"} {/* ✅ Fix for missing date */}
           </Typography>
           <Box>
             <IconButton 
               size="small" 
-              onClick={() => onEdit(config.id)} 
+              onClick={() => onEdit(config)}  // ✅ Fix: Pass full config instead of just ID
               color="inherit"
               sx={{ color: '#fff' }}
             >
@@ -72,20 +73,20 @@ const BrokerConfigCard = ({ config, onEdit, onDelete, onToggleActive }) => {
             </IconButton>
             <IconButton 
               size="small" 
-              onClick={() => onDelete(config.id)} 
-              color="inherit"
+              onClick={() => onDelete(config)}  // ✅ Fix: Pass full config
+              color="error"
               sx={{ color: '#fff' }}
             >
               <Delete />
             </IconButton>
-            <Button
-              variant="outlined"
+            <Button 
+              variant="contained" 
+              color={config.is_active ? "secondary" : "primary"}
+              onClick={() => onToggleActive(config)}
               size="small"
-              onClick={() => onToggleActive(config.id)}
-              startIcon={config.is_active ? <Error /> : <CheckCircle />}
-              sx={{ ml: 1, borderColor: '#fff', color: '#fff' }}
+              sx={{ ml: 1 }}
             >
-              {config.is_active ? 'Deactivate' : 'Activate'}
+              {config.is_active ? "Deactivate" : "Activate"}
             </Button>
           </Box>
         </Box>
@@ -94,12 +95,14 @@ const BrokerConfigCard = ({ config, onEdit, onDelete, onToggleActive }) => {
   );
 };
 
+// ✅ Define PropTypes for Type Safety
 BrokerConfigCard.propTypes = {
   config: PropTypes.shape({
     id: PropTypes.number.isRequired,
-    status: PropTypes.string.isRequired,
+    username: PropTypes.string,
+    status: PropTypes.string,
     is_active: PropTypes.bool.isRequired,
-    created_at: PropTypes.string.isRequired,
+    created_at: PropTypes.string
   }).isRequired,
   onEdit: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,

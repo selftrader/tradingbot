@@ -7,5 +7,8 @@ alembic upgrade head || (
     exit /b 1
 )
 
-echo Starting FastAPI Server on port 8000...
-uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+echo Setting Debug Mode...
+set DEBUG=True
+
+echo Starting FastAPI Server on port 8000 in Debug Mode...
+uvicorn app:app --host 0.0.0.0 --port 8000 --reload --log-level debug

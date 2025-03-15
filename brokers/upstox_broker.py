@@ -1,15 +1,15 @@
 import requests
 from brokers.base_broker import BaseBroker
 
-class DhanBroker(BaseBroker):
-    """Handles authentication and data retrieval for Dhan"""
-    BASE_URL = "https://api.dhan.co"
+class UpstoxBroker(BaseBroker):
+    """Handles authentication for Upstox"""
+    BASE_URL = "https://api.upstox.com"
 
     def authenticate(self):
-        """Authenticate with Dhan API"""
-        login_url = f"{self.BASE_URL}/login"
+        """Authenticate with Upstox API"""
+        auth_url = f"{self.BASE_URL}/auth/login"
         headers = {"Content-Type": "application/json"}
-        response = requests.post(login_url, json=self.credentials, headers=headers)
+        response = requests.post(auth_url, json=self.credentials, headers=headers)
 
         if response.status_code == 200:
             return response.json()  # ✅ Success

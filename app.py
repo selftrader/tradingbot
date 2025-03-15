@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 # Import database and models
+from core.middleware import TokenRefreshMiddleware
 from database.connection import get_db
 from database.init_db import init_db
 from router.user_router import router as user_router
@@ -74,6 +75,7 @@ app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(broker_router, prefix="/api/broker", tags=["Broker API"])
 app.include_router(user_router, prefix="/api/user", tags=["User Profile"])
 app.include_router(stock_list_router, prefix="/api/stocks", tags=["Stock Data"])
+app.add_middleware(TokenRefreshMiddleware)
 
 # ✅ Debug Preflight Requests
 @app.options("/{full_path:path}")
