@@ -74,13 +74,18 @@ class BrokerConfig(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    client_id = Column(String, nullable=True)
     broker_name = Column(String, index=True)
-    api_key = Column(String, nullable=False)
-    api_secret = Column(String, nullable=False)
+    api_key = Column(String, nullable=True)
+    api_secret = Column(String, nullable=True)
+    access_token = Column(String, nullable=True)
+    refresh_token = Column(String, nullable=True)
     additional_params = Column(JSON, nullable=True)
     is_active = Column(Boolean, default=False)
-    config = Column(JSON)
-    created_at = Column(DateTime, default=func.now())
+    access_token_expiry = Column(DateTime, nullable=True)  # ✅ Correct type for datetime
+    last_error_message = Column(String, nullable=True)  # ✅ Track last error message
+    config = Column(JSON, nullable=True)  # ✅ Added `nullable=True`
+    created_at = Column(DateTime, default=func.now())  # ✅ Only one `created_at` field
 
     # Relationships
     user = relationship("User", back_populates="broker_configs")

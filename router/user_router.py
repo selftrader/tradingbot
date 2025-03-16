@@ -9,7 +9,7 @@ router = APIRouter()
 @router.get("/profile")
 def get_user_profile(current_user: User = Depends(get_current_user)):
     """Fetch the currently logged-in user's profile"""
-    return {"email": current_user.email, "name": current_user.name}
+    return {"email": current_user.email, "name": current_user.full_name}
 
 @router.put("/profile")
 def update_user_profile(name: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

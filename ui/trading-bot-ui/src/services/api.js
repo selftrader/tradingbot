@@ -220,4 +220,41 @@ export const fetchLiveUpdates = async () => {
     }
   };
 
-export default tradingAPI;
+
+  // ✅ Create an Axios instance
+  const api = axios.create({
+      baseURL: `${BASE_URL}/api`, // Replace with your actual API base URL
+      headers: {
+          "Content-Type": "application/json"
+      }
+  });
+  
+  // ✅ Attach the interceptor to handle token refresh
+  api.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        console.error("🚨 Axios Error:", error.response?.status, error.response?.data);
+
+        if (error.response && error.response.status === 401) {
+            const newAccessToken = error.response.data.new_access_token;
+            
+            if (newAccessToken) {
+                console.log("🟢 Token refreshed:", newAccessToken);
+
+                // ✅ Save new token
+                localStorage.setItem("access_token", newAccessToken);
+
+                // ✅ Retry the failed request with the new token
+                error.config.headers["Authorization"] = `Bearer ${newAccessToken}`;
+                return api(error.config);
+            } else {
+                console.warn("🔴 No new token received. Logging out.");
+            }
+        }
+
+        return Promise.reject(error);
+    }
+);
+  
+  export default api;
+  

@@ -1,127 +1,92 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import {
+  Box,
+  Typography,
+  Button,
+  CircularProgress,
+  Modal,
+} from "@mui/material";
+import BrokerConfigCard from "../components/BrokerConfigCard";
+import BrokerConfigModal from "../components/settings/BrokerConfigModal";
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
-import { Box, Typography, TextField, Button, Card, CardContent, Select, MenuItem, CircularProgress } from "@mui/material";
+const BrokerConfigPage = () => {
+  const [brokers, setBrokers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false); // ✅ Controls the popup modal
 
+  // ✅ Fetch Brokers from API
+  const fetchBrokers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("access_token");
+      const headers = { Authorization: `Bearer ${token}` };
 
-const BrokerConfigPage = ({ userId }) => {
-    const [brokers, setBrokers] = useState([]);
-    const [newBroker, setNewBroker] = useState({ broker_name: "", api_key: "", api_secret: "" });
-    const [loading, setLoading] = useState(false);
+      const response = await axios.get(`${API_URL}/api/broker/list`, { headers });
+      setBrokers(response.data.brokers);
+    } catch (error) {
+      console.error("❌ Failed to load brokers:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    const availableBrokers = ["Zerodha", "Upstox", "Dhan", "Angel One", "Fyers"];
+  useEffect(() => {
+    fetchBrokers();
+  }, [fetchBrokers]);
 
-    // Fetch brokers from API
-    const fetchBrokers = useCallback(async () => {
-        setLoading(true);
-        try {
-            const response = await axios.get(`/api/brokers/list/${userId}`);
-            setBrokers(response.data);
-        } catch (error) {
-            console.error("Error fetching brokers:", error);
-        } finally {
-            setLoading(false);
-        }
-    }, [userId]);
+  // ✅ Delete Broker Function
+  const deleteBroker = async (brokerId) => {
+    if (!window.confirm("Are you sure you want to remove this broker?")) return;
+    
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      const headers = { Authorization: `Bearer ${token}` };
 
-    useEffect(() => {
-        fetchBrokers();
-    }, [fetchBrokers]);
+      await axios.delete(`${API_URL}/api/broker/delete/${brokerId}`, { headers });
+      fetchBrokers();
+    } catch (error) {
+      console.error("❌ Failed to delete broker:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Add a new broker
-    const addBroker = async () => {
-        if (!newBroker.broker_name || !newBroker.api_key || !newBroker.api_secret) {
-            alert("Please fill in all fields");
-            return;
-        }
-        try {
-            setLoading(true);
-            await axios.post(`/api/brokers/add/${userId}`, newBroker);
-            setNewBroker({ broker_name: "", api_key: "", api_secret: "" });
-            fetchBrokers();
-        } catch (error) {
-            console.error("Error adding broker:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+  return (
+    <Box p={3}>
+      {/* ✅ Header with "Add Broker" Button */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h5">Broker Configurations</Typography>
+        <Button variant="contained" onClick={() => setModalOpen(true)}>
+          Add Broker
+        </Button>
+      </Box>
 
-    // Add deleteBroker function
-    const deleteBroker = async (brokerId) => {
-        if (!window.confirm("Are you sure you want to remove this broker?")) {
-            return;
-        }
-        
-        try {
-            setLoading(true);
-            await axios.delete(`/api/brokers/delete/${userId}/${brokerId}`);
-            await fetchBrokers(); // Refresh the list after deletion
-        } catch (error) {
-            console.error("Error deleting broker:", error);
-            alert("Failed to delete broker");
-        } finally {
-            setLoading(false);
-        }
-    };
+      {/* ✅ Loading Indicator */}
+      {loading ? <CircularProgress /> : (
+        <>
+          {brokers.length > 0 ? brokers.map((broker) => (
+            <BrokerConfigCard
+              key={broker.id}
+              config={broker}
+              onDelete={deleteBroker}
+            />
+          )) : (
+            <Typography color="text.secondary" align="center">
+              No brokers added. Click "Add Broker" to start.
+            </Typography>
+          )}
+        </>
+      )}
 
-    return (
-        <Box sx={{ p: 4 }}>
-            <Typography variant="h4">Broker Configuration</Typography>
-
-            {/* Add Broker Form */}
-            <Box sx={{ mt: 3 }}>
-                <Typography variant="h6">Add New Broker</Typography>
-                <Select
-                    fullWidth
-                    value={newBroker.broker_name}
-                    onChange={(e) => setNewBroker({ ...newBroker, broker_name: e.target.value })}
-                    sx={{ mt: 2 }}
-                >
-                    {availableBrokers.map((broker) => (
-                        <MenuItem key={broker} value={broker}>{broker}</MenuItem>
-                    ))}
-                </Select>
-                <TextField
-                    fullWidth
-                    label="API Key"
-                    value={newBroker.api_key}
-                    onChange={(e) => setNewBroker({ ...newBroker, api_key: e.target.value })}
-                    sx={{ mt: 2 }}
-                />
-                <TextField
-                    fullWidth
-                    label="API Secret"
-                    type="password"
-                    value={newBroker.api_secret}
-                    onChange={(e) => setNewBroker({ ...newBroker, api_secret: e.target.value })}
-                    sx={{ mt: 2 }}
-                />
-
-                <Button variant="contained" sx={{ mt: 2 }} onClick={addBroker}>
-                    Add Broker
-                </Button>
-            </Box>
-
-            {/* Display Brokers */}
-            <Typography variant="h5" sx={{ mt: 4 }}>Connected Brokers</Typography>
-            {loading ? (
-                <CircularProgress sx={{ mt: 2 }} />
-            ) : brokers.length > 0 ? (
-                brokers.map((broker) => (
-                    <Card key={broker.id} sx={{ mt: 2, p: 2 }}>
-                        <CardContent>
-                            <Typography variant="h6">{broker.broker_name}</Typography>
-                            <Button variant="outlined" color="error" sx={{ mt: 1 }} onClick={() => deleteBroker(broker.id)}>
-                                Remove
-                            </Button>
-                        </CardContent>
-                    </Card>
-                ))
-            ) : (
-                <Typography>No brokers connected yet.</Typography>
-            )}
-        </Box>
-    );
+      {/* ✅ Add Broker Popup Modal */}
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
+        <BrokerConfigModal open={modalOpen} onClose={() => setModalOpen(false)} refreshBrokers={fetchBrokers} />
+      </Modal>
+    </Box>
+  );
 };
 
 export default BrokerConfigPage;

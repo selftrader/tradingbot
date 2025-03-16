@@ -1,13 +1,13 @@
 import requests
 from brokers.base_broker import BaseBroker
 
-class DhanBroker(BaseBroker):
-    """Handles authentication and data retrieval for Dhan"""
-    BASE_URL = "https://api.dhan.co"
+class AngelBroker(BaseBroker):
+    """Handles authentication for Angel One"""
+    BASE_URL = "https://api.angelbroking.com"
 
     def authenticate(self):
-        """Authenticate with Dhan API"""
-        login_url = f"{self.BASE_URL}/login"
+        """Authenticate with Angel One API"""
+        login_url = f"{self.BASE_URL}/rest/authenticate"
         headers = {"Content-Type": "application/json"}
         response = requests.post(login_url, json=self.credentials, headers=headers)
 

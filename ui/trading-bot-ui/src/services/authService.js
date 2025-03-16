@@ -1,4 +1,4 @@
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 // ✅ Signup API Call
 export const signup = async (credentials) => {
@@ -16,7 +16,7 @@ export const signup = async (credentials) => {
                 success: false, 
                 message: Array.isArray(data.detail?.errors) 
                     ? data.detail.errors.join(", ")  // ✅ Properly format multiple errors
-                    : "Signup failed"
+                    : data.detail || "Signup failed"
             };
         }
 
@@ -52,13 +52,12 @@ export const verifyOtp = async (phone, countryCode, otp) => {
     }
 };
 
-export const resendOtp = async (phone_number, country_code,otp) => {
+// ✅ Resend OTP API Call
+export const resendOtp = async (phone_number, country_code) => {
     try {
-        const response = await fetch("/api/auth/resend-otp", {
+        const response = await fetch(`${API_URL}/api/auth/resend-otp`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ phone_number, country_code }),
         });
 
@@ -69,66 +68,119 @@ export const resendOtp = async (phone_number, country_code,otp) => {
     }
 };
 
-
-
-
-
-// ✅ Detects if the identifier is an email or phone number
-// const isEmail = (identifier) => /\S+@\S+\.\S+/.test(identifier);
-
 // ✅ Login API Call (Handles Email & Phone Login)
 export const login = async (credentials) => {
     try {
-        console.log("🟢 Login Function Received:", credentials);
-
-        const requestData = {
-            email: credentials.email,
-            password: credentials.password
-        };
-
-        console.log("🟢 Login Request Data:", requestData);
-
         const response = await fetch(`${API_URL}/api/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(requestData),
+            body: JSON.stringify(credentials),
+            credentials: "include"  // ✅ Includes HTTP-Only Cookie
         });
 
         const data = await response.json();
-        console.log("🔴 API Response:", data); // ✅ Debugging Response
+        console.log("🔴 API Response:", data);
 
         if (!response.ok) {
             return { success: false, message: data.detail || "Login failed" };
         }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("isLoggedIn", "true");  // ✅ Store login state
-      window.dispatchEvent(new Event("storage"));
-        return { success: true, message: data.message, access_token: data.access_token };
+        // ✅ Store access token correctly
+        localStorage.setItem("access_token", data.access_token);
+        localStorage.setItem("isLoggedIn", "true");
+        window.dispatchEvent(new Event("storage"));
+
+        // ✅ Notify UI about authentication state change
+        window.dispatchEvent(new Event("storage"));
+
+        return { success: true, message: data.message };
     } catch (error) {
         console.error("🔴 Login Request Failed:", error);
         return { success: false, message: "Server error. Please try again later." };
     }
 };
 
-
-
 // ✅ Logout Function
 export const logout = () => {
     console.log("✅ Logout function called!");
 
     // ✅ Clear authentication data
-    localStorage.removeItem("token");
+    localStorage.removeItem("access_token");
     localStorage.removeItem("isLoggedIn");
 
     // ✅ Notify all components to update UI
     window.dispatchEvent(new Event("storage")); 
 
-    // ✅ Redirect to Landing Page (`/`)
+    // ✅ Redirect to Login Page
     window.location.href = "/";
 };
 
+// ✅ Check if User is Authenticated
+export const isAuthenticated = () => !!localStorage.getItem("access_token");
 
+// ✅ API Request with Authentication & Auto Token Refresh
+export const fetchWithAuth = async (url, options = {}) => {
+    try {
+        const response = await fetch(url, {
+            ...options,
+            credentials: "include", // ✅ Ensure cookies are sent
+        });
 
-// ✅ Check if user is authenticated
-export const isAuthenticated = () => !!localStorage.getItem("token");
+        if (response.status === 401) {
+            console.warn("🔄 Access token expired! Refreshing...");
+            // Fix: Use refreshAccessToken instead of undefined refreshToken
+            const newToken = await refreshAccessToken();
+            if (!newToken) {
+                console.error("❌ Token refresh failed");
+                logout(); // Redirect to login if refresh fails
+                return null;
+            }
+            // Retry the request with new token
+            return fetch(url, { 
+                ...options, 
+                credentials: "include",
+                headers: {
+                    ...options.headers,
+                    Authorization: `Bearer ${newToken}`
+                }
+            });
+        }
+
+        return response.json();
+    } catch (error) {
+        console.error("❌ API request failed:", error);
+        return null;
+    }
+};
+
+export const refreshAccessToken = async () => {
+    // ✅ Ensure `refreshToken` is properly defined
+    const refreshToken = localStorage.getItem("refresh_token"); 
+
+    if (!refreshToken) {
+        console.error("No refresh token found.");
+        return null;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/api/auth/refresh`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ refresh_token: refreshToken }), // ✅ Use `refreshToken`
+        });
+
+        if (!response.ok) {
+            console.warn("Refresh token is invalid or expired.");
+            return null;
+        }
+
+        const data = await response.json();
+        localStorage.setItem("access_token", data.access_token);
+        return data.access_token;
+    } catch (error) {
+        console.error("Failed to refresh token:", error);
+        return null;
+    }
+};
