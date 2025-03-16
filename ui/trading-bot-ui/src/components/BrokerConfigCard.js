@@ -9,7 +9,7 @@ import {
   Box,
   Button
 } from '@mui/material';
-import { Edit, Delete, CheckCircle, Error } from '@mui/icons-material';
+import { Edit, Delete } from '@mui/icons-material';
 
 const BrokerConfigCard = ({ config, onEdit, onDelete, onToggleActive }) => {
   // ✅ Determine Status Color Dynamically
