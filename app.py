@@ -63,11 +63,11 @@ ALLOWED_ORIGINS = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,  
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  
-    allow_headers=["Authorization", "Content-Type", "Accept"],  
-    expose_headers=["Content-Disposition"]
+    allow_origins=ALLOWED_ORIGINS,  # ✅ Use specific origins instead of "*"
+    allow_credentials=True,  # ✅ Required for sending cookies & Authorization headers
+    allow_methods=["*"],  # ✅ Allow all methods (GET, POST, PUT, DELETE, OPTIONS)
+    allow_headers=["Authorization", "Content-Type", "Accept", "Refresh-Token"],  # ✅ Include Refresh-Token
+    expose_headers=["Content-Disposition", "Authorization"],  # ✅ Expose required headers for downloads & auth
 )
 
 # ✅ Register FastAPI Routes Before Initializing SocketIO

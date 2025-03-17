@@ -110,31 +110,38 @@ def login(user: UserEmailLogin, response: Response, db: Session = Depends(get_db
     response.set_cookie(key="access_token", value=access_token, httponly=True, secure=True, samesite="Lax")
     response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=True, samesite="Lax")
 
-    return {"message": "Login successful", "access_token": access_token, "token_type": "bearer"}
+    return {"message": "Login successful", "access_token": access_token, "token_type": "bearer","refresh_token": refresh_token, "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES}
 
 
 # ✅ Refresh Token Route (for auto-login)
-@auth_router.post("/refresh")
-def refresh_access_token(request: Request, response: Response):
-    """Issues a new access token using refresh token stored in HTTP-Only cookie"""
-    refresh_token = request.cookies.get("refresh_token")
+@auth_router.post("/refresh-token")
+def refresh_token(request: Request, db: Session = Depends(get_db)):
+    """Refresh access token using a valid refresh token"""
+    refresh_token = request.headers.get("Refresh-Token")
 
     if not refresh_token:
-        raise HTTPException(status_code=401, detail="Missing refresh token")
+        raise HTTPException(status_code=401, detail="Refresh token missing")
 
     try:
-        payload = jwt.decode(refresh_token, REFRESH_SECRET, algorithms=["HS256"])
+        payload = jwt.decode(refresh_token, REFRESH_SECRET, algorithms=[ALGORITHM])
         user_email = payload.get("sub")
-        new_access_token = create_access_token(user_email)
+        if not user_email:
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+        
+        user = db.query(User).filter(User.email == user_email).first()
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
 
-        # ✅ Set new access token in HTTP-Only Cookie
-        response.set_cookie(key="access_token", value=new_access_token, httponly=True, secure=True, samesite="Lax")
-
-        return {"access_token": new_access_token}
+        # ✅ Generate a new access token
+        access_token = create_access_token({"sub": user.email})
+        
+        return {"access_token": access_token}
+    
     except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Refresh token expired. Please log in again.")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
+        raise HTTPException(status_code=401, detail="Refresh token expired")
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
 
 
 
