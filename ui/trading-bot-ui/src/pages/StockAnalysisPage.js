@@ -1,38 +1,29 @@
-//// filepath: /c:/Work/P/app/tradingapp-main/tradingapp-main/ui/trading-bot-ui/src/pages/StockAnalysisPage.js
-import React, { useState, useEffect } from 'react';
-import { analyzeSectoralOptions, tradingAPI } from "../services/api";
+import React, { useState, useEffect } from "react";
+import tradingAPI from "../services/tradingAPI";  
+import { analyzeSectoralOptions } from "../services/sectorAnalysisAPI";
 import {
     Container,
     Paper,
     Typography,
-    FormControl,
-    Select,
-    MenuItem,
     Box,
     Button,
-    Table,
-    TableHead,
-    TableBody,
-    TableRow,
-    TableCell,
-    Checkbox,
-    Chip,
     Alert,
     Autocomplete,
     TextField,
-    Divider
-} from '@mui/material';
-import { PlayArrow } from '@mui/icons-material';
+    Divider,
+    Select,
+    MenuItem
+} from "@mui/material";
+import { PlayArrow } from "@mui/icons-material";
 
 const StockAnalysisPage = () => {
-  const [sector, setSector] = useState('');
+  const [sector, setSector] = useState("");
   const [analysisResult, setAnalysisResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  // const [analysis, setAnalysis] = useState(null);
   const [selectedStocks, setSelectedStocks] = useState([]);
   const [tradingStarted, setTradingStarted] = useState(false);
-  const [tradingError, setTradingError] = useState("");
+  const [tradingError, setTradingError] = useState("");  // ✅ Still required
   const [availableStocks, setAvailableStocks] = useState([]);
 
   useEffect(() => {
@@ -52,10 +43,15 @@ const StockAnalysisPage = () => {
   };
 
   const handleAnalyze = async () => {
+    if (!sector) {
+      setError("Please select a sector.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
-      const result = await analyzeSectoralOptions();
+      const result = await analyzeSectoralOptions(sector);
       setAnalysisResult(result);
     } catch (err) {
       setError("Analysis failed: " + err.message);
@@ -64,27 +60,10 @@ const StockAnalysisPage = () => {
     }
   };
 
-  // const fetchAnalysis = async (sector) => {
-  //   try {
-  //     const data = await analyzeSectoralOptions(sector);
-  //     setAnalysis(data);
-  //   } catch (error) {
-  //     console.error('Error fetching analysis:', error);
-  //   }
-  // };
-
   const handleStockSelect = (stock) => {
-    setSelectedStocks(prev => 
-      prev.includes(stock) 
-        ? prev.filter(s => s !== stock)
-        : [...prev, stock]
+    setSelectedStocks((prev) =>
+      prev.includes(stock) ? prev.filter((s) => s !== stock) : [...prev, stock]
     );
-  };
-
-  const handleManualStockSelect = (event, newValue) => {
-    if (newValue && !selectedStocks.includes(newValue.symbol)) {
-      setSelectedStocks(prev => [...prev, newValue.symbol]);
-    }
   };
 
   const handleStartTrading = async () => {
@@ -94,9 +73,11 @@ const StockAnalysisPage = () => {
     }
 
     try {
-      await tradingAPI.startTrading(selectedStocks);
+      for (const stock of selectedStocks) {
+        await tradingAPI.startTrading({ symbol: stock });
+      }
       setTradingStarted(true);
-      setTradingError("");
+      setTradingError("");  // ✅ Reset error if successful
     } catch (err) {
       setTradingError("Failed to start trading: " + err.message);
     }
@@ -109,128 +90,54 @@ const StockAnalysisPage = () => {
           Stock Analysis & Selection
         </Typography>
 
-        {/* Manual Stock Selection Section */}
         <Box sx={{ mb: 4 }}>
           <Typography variant="h6" gutterBottom>
             Manual Stock Selection
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            <Autocomplete
-              sx={{ width: 300 }}
-              options={availableStocks}
-              getOptionLabel={(option) => `${option.symbol} - ${option.name}`}
-              onChange={handleManualStockSelect}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Search and select stocks"
-                  variant="outlined"
-                />
-              )}
-            />
-          </Box>
+          <Autocomplete
+            sx={{ width: 300 }}
+            options={availableStocks}
+            getOptionLabel={(option) => `${option.symbol} - ${option.name}`}
+            onChange={(event, newValue) => handleStockSelect(newValue?.symbol)}
+            renderInput={(params) => (
+              <TextField {...params} label="Search and select stocks" variant="outlined" />
+            )}
+          />
         </Box>
 
         <Divider sx={{ my: 3 }} />
 
-        {/* Sector Analysis Section */}
         <Typography variant="h6" gutterBottom>
           Sector Analysis
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2 }}>
-          <FormControl sx={{ minWidth: 200 }}>
-            <Select
-              value={sector}
-              onChange={handleSectorChange}
-              displayEmpty
-            >
-              <MenuItem value="">
-                <em>All Sectors</em>
-              </MenuItem>
-              <MenuItem value="Technology">Technology</MenuItem>
-              <MenuItem value="Finance">Finance</MenuItem>
-              <MenuItem value="Healthcare">Healthcare</MenuItem>
-              <MenuItem value="Consumer">Consumer</MenuItem>
-              <MenuItem value="Energy">Energy</MenuItem>
-            </Select>
-          </FormControl>
-          <Button variant="contained" onClick={handleAnalyze}>
+        <Box sx={{ display: "flex", gap: 2, alignItems: "center", mt: 2 }}>
+          <Select value={sector} onChange={handleSectorChange} displayEmpty>
+            <MenuItem value=""><em>All Sectors</em></MenuItem>
+            <MenuItem value="Technology">Technology</MenuItem>
+            <MenuItem value="Finance">Finance</MenuItem>
+            <MenuItem value="Healthcare">Healthcare</MenuItem>
+            <MenuItem value="Consumer">Consumer</MenuItem>
+            <MenuItem value="Energy">Energy</MenuItem>
+          </Select>
+          <Button variant="contained" onClick={handleAnalyze} disabled={loading}>
             {loading ? "Analyzing..." : "Analyze Stocks"}
           </Button>
         </Box>
-        {error && <Typography color="error">{error}</Typography>}
-        {analysisResult && analysisResult.recommendedStocks && (
-          <Box sx={{ mt: 4 }}>
-            <Typography variant="h6" gutterBottom>
-              Recommended Stocks
-            </Typography>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Select</TableCell>
-                  <TableCell>Symbol</TableCell>
-                  <TableCell>Sector</TableCell>
-                  <TableCell>Confidence</TableCell>
-                  <TableCell>Action</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {analysisResult.recommendedStocks.map((stock, index) => (
-                  <TableRow 
-                    key={index}
-                    sx={{
-                      backgroundColor: selectedStocks.includes(stock.symbol) 
-                        ? 'action.selected' 
-                        : 'inherit'
-                    }}
-                  >
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedStocks.includes(stock.symbol)}
-                        onChange={() => handleStockSelect(stock.symbol)}
-                      />
-                    </TableCell>
-                    <TableCell>{stock.symbol}</TableCell>
-                    <TableCell>{stock.sector}</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={`${(stock.confidence * 100).toFixed(1)}%`}
-                        color={stock.confidence > 0.7 ? "success" : "warning"}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={stock.action}
-                        color={stock.action === 'BUY' ? 'success' : 'error'}
-                        size="small"
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Box>
+        {loading && <Typography>Loading...</Typography>}
+        {error && <Alert severity="error">{error}</Alert>}
+
+        {analysisResult && (
+          <Typography variant="h6" sx={{ mt: 2 }}>
+            Analysis Results Available
+          </Typography>
         )}
 
-        {/* Selected Stocks Section - Move outside of analysisResult condition */}
         <Box sx={{ mt: 4 }}>
           <Typography variant="h6" gutterBottom>
             Selected Stocks for Trading
           </Typography>
           {selectedStocks.length > 0 ? (
             <>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-                {selectedStocks.map(stock => (
-                  <Chip
-                    key={stock}
-                    label={stock}
-                    onDelete={() => handleStockSelect(stock)}
-                    color="primary"
-                    size="small"
-                  />
-                ))}
-              </Box>
               <Button
                 variant="contained"
                 color="success"
@@ -238,7 +145,7 @@ const StockAnalysisPage = () => {
                 onClick={handleStartTrading}
                 disabled={tradingStarted}
               >
-                {tradingStarted ? 'Trading Started' : 'Start Trading'}
+                {tradingStarted ? "Trading Started" : "Start Trading"}
               </Button>
             </>
           ) : (
@@ -248,12 +155,12 @@ const StockAnalysisPage = () => {
           )}
         </Box>
 
+        {/* ✅ Show trading error if it exists */}
         {tradingError && (
           <Alert severity="error" sx={{ mt: 2 }}>
             {tradingError}
           </Alert>
         )}
-
       </Paper>
     </Container>
   );

@@ -74,8 +74,7 @@ export const login = async (credentials) => {
         const response = await fetch(`${API_URL}/api/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(credentials),
-            credentials: "include"  // ✅ Includes HTTP-Only Cookie
+            body: JSON.stringify(credentials)
         });
 
         const data = await response.json();
@@ -87,12 +86,9 @@ export const login = async (credentials) => {
 
         // ✅ Store access token correctly
         localStorage.setItem("access_token", data.access_token);
+        localStorage.setItem("refresh_token", data.refresh_token);
         localStorage.setItem("isLoggedIn", "true");
         window.dispatchEvent(new Event("storage"));
-
-        // ✅ Notify UI about authentication state change
-        window.dispatchEvent(new Event("storage"));
-
         return { success: true, message: data.message };
     } catch (error) {
         console.error("🔴 Login Request Failed:", error);
@@ -106,6 +102,7 @@ export const logout = () => {
 
     // ✅ Clear authentication data
     localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
     localStorage.removeItem("isLoggedIn");
 
     // ✅ Notify all components to update UI

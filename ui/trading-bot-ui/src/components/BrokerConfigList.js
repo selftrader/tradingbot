@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, Button, CircularProgress, Modal } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import BrokerConfigCard from './BrokerConfigCard';
-import axios from 'axios';
+import apiClient from '../services/api';  // ✅ Use global Axios client
 import BrokerConfigModal from './BrokerConfigModal';
-
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 const BrokerConfigList = () => {
   const [configs, setConfigs] = useState([]);
@@ -19,10 +17,7 @@ const BrokerConfigList = () => {
   const loadConfigs = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("accessToken");
-      const headers = { Authorization: `Bearer ${token}` };
-
-      const response = await axios.get(`${API_URL}/api/broker/list`, { headers });
+      const response = await apiClient.get(`/api/broker/list`); // ✅ Uses apiClient (handles 401)
       setConfigs(response.data.brokers);
     } catch (error) {
       console.error('❌ Failed to load broker configs:', error);
@@ -33,10 +28,7 @@ const BrokerConfigList = () => {
 
   const handleDelete = async (id) => {
     try {
-      const token = localStorage.getItem("accessToken");
-      const headers = { Authorization: `Bearer ${token}` };
-
-      await axios.delete(`${API_URL}/api/broker/delete/${id}`, { headers });
+      await apiClient.delete(`/api/broker/delete/${id}`); // ✅ Uses apiClient
       await loadConfigs();
     } catch (error) {
       console.error('❌ Failed to delete broker config:', error);
@@ -45,10 +37,7 @@ const BrokerConfigList = () => {
 
   const handleToggleActive = async (id) => {
     try {
-      const token = localStorage.getItem("accessToken");
-      const headers = { Authorization: `Bearer ${token}` };
-
-      await axios.put(`${API_URL}/api/broker/toggle/${id}`, {}, { headers });
+      await apiClient.put(`/api/broker/toggle/${id}`, {}); // ✅ Uses apiClient
       await loadConfigs();
     } catch (error) {
       console.error('❌ Failed to toggle broker status:', error);

@@ -14,7 +14,7 @@ from database.models import BrokerConfig
 logger = logging.getLogger(__name__)
 
 # Load JWT Secret Key
-SECRET_KEY = os.getenv("JWT_SECRET", "mysecretkey")
+SECRET_KEY = os.getenv("JWT_SECRET")
 
 # API Router
 broker_router = APIRouter()
