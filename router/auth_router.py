@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, logger, status
 import jwt
 from sqlalchemy.orm import Session
 from core.config import REFRESH_SECRET
@@ -113,35 +113,52 @@ def login(user: UserEmailLogin, response: Response, db: Session = Depends(get_db
     return {"message": "Login successful", "access_token": access_token, "token_type": "bearer","refresh_token": refresh_token, "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES}
 
 
-# ✅ Refresh Token Route (for auto-login)
+#  Refresh Token Route (for auto-login)
 @auth_router.post("/refresh-token")
 def refresh_token(request: Request, db: Session = Depends(get_db)):
-    """Refresh access token using a valid refresh token"""
+    """
+    Refreshes the access token using a valid refresh token provided in headers.
+    """
     refresh_token = request.headers.get("Refresh-Token")
 
     if not refresh_token:
+        logger.warning("Refresh token missing from headers.")
         raise HTTPException(status_code=401, detail="Refresh token missing")
 
     try:
+        # Decode the refresh token using the REFRESH_SECRET
         payload = jwt.decode(refresh_token, REFRESH_SECRET, algorithms=[ALGORITHM])
         user_email = payload.get("sub")
+
         if not user_email:
+            logger.warning("Invalid refresh token payload: no subject.")
             raise HTTPException(status_code=401, detail="Invalid refresh token")
-        
+
         user = db.query(User).filter(User.email == user_email).first()
         if not user:
+            logger.warning("User not found for refresh token.")
             raise HTTPException(status_code=401, detail="User not found")
 
-        # ✅ Generate a new access token
-        access_token = create_access_token({"sub": user.email})
-        
-        return {"access_token": access_token}
-    
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Refresh token expired")
-    except jwt.JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        # Create a new access token
+        new_access_token = create_access_token(user_email)
 
+        logger.info(f"Issued new access token for user: {user_email}")
+
+        return {
+            "access_token": new_access_token,
+            "token_type": "bearer",
+            "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES
+        }
+
+    except jwt.ExpiredSignatureError:
+        logger.warning("Refresh token has expired.")
+        raise HTTPException(status_code=401, detail="Refresh token expired")
+    except jwt.PyJWTError as e:
+        logger.warning(f"Failed to decode refresh token: {str(e)}")
+        raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception as e:
+        logger.error(f"Unexpected error in refresh-token: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 

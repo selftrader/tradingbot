@@ -3,7 +3,7 @@ from brokers.base_broker import BaseBroker
 
 class DhanBroker(BaseBroker):
     """Handles authentication and data retrieval for Dhan"""
-    BASE_URL = "https://api.dhan.co"
+    BASE_URL = "https://api.dhan.co/v2"
 
     def authenticate(self):
         """Authenticate with Dhan API"""

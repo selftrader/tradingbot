@@ -1,32 +1,73 @@
-import React from "react";
-import { Container, Typography, Paper, Avatar, List, ListItem, ListItemText } from "@mui/material";
+import React, { useEffect, useState } from "react";
+import { Card, CardContent, Avatar, Typography, Grid, CircularProgress, Box } from "@mui/material";
+import apiClient from "../services/api";
 
 const ProfilePage = () => {
-  // Sample user data (Replace with API call later)
-  const user = {
-    name: "John Doe",
-    email: "johndoe@example.com",
-    tradingReports: ["Trade 1 - Profit: $500", "Trade 2 - Loss: $200", "Trade 3 - Profit: $300"],
-  };
+    const [profile, setProfile] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-  return (
-    <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Paper elevation={3} sx={{ p: 4, textAlign: "center" }}>
-        <Avatar sx={{ width: 80, height: 80, margin: "auto" }} alt="Profile Picture" src="/path/to/profile-pic.jpg" />
-        <Typography variant="h5" sx={{ mt: 2 }}>{user.name}</Typography>
-        <Typography variant="subtitle1" color="textSecondary">{user.email}</Typography>
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const response = await apiClient.get("/user/profile"); // ✅ Fetch user profile
+                setProfile(response.data);
+            } catch (err) {
+                console.error("Error fetching profile:", err);
+                setError("Failed to load profile.");
+            } finally {
+                setLoading(false);
+            }
+        };
 
-        <Typography variant="h6" sx={{ mt: 4 }}>Trading Reports</Typography>
-        <List>
-          {user.tradingReports.map((report, index) => (
-            <ListItem key={index}>
-              <ListItemText primary={report} />
-            </ListItem>
-          ))}
-        </List>
-      </Paper>
-    </Container>
-  );
+        fetchProfile();
+    }, []);
+
+    if (loading) return <Box display="flex" justifyContent="center" mt={5}><CircularProgress /></Box>;
+    if (error) return <p style={{ color: "red", textAlign: "center" }}>{error}</p>;
+
+    return (
+        <Grid container justifyContent="center" mt={5}>
+            <Grid item xs={12} sm={8} md={6}>
+                <Card sx={{ p: 3, boxShadow: 3 }}>
+                    <Box display="flex" flexDirection="column" alignItems="center">
+                        {/* Profile Picture */}
+                        <Avatar
+                            src={profile.avatar || "/assets/default-avatar.png"}
+                            alt="Profile Picture"
+                            sx={{ width: 100, height: 100, mb: 2 }}
+                        />
+
+                        {/* User Details */}
+                        <Typography variant="h5" fontWeight="bold">
+                            {profile.name}
+                        </Typography>
+                        <Typography variant="subtitle1" color="textSecondary">
+                            {profile.email}
+                        </Typography>
+                    </Box>
+
+                    <CardContent>
+                        {/* Additional Profile Details */}
+                        <Grid container spacing={2}>
+                            {/* <Grid item xs={12} sm={6}>
+                                <Typography variant="body1"><strong>Username:</strong> {profile.username}</Typography>
+                            </Grid> */}
+                            <Grid item xs={12} sm={6}>
+                                <Typography variant="body1"><strong>Role:</strong> {profile.role || "User"}</Typography>
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Typography variant="body1"><strong>Phone:</strong> {profile.phone || "Not provided"}</Typography>
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Typography variant="body1"><strong>Country:</strong> {profile.country || "Not specified"}</Typography>
+                            </Grid>
+                        </Grid>
+                    </CardContent>
+                </Card>
+            </Grid>
+        </Grid>
+    );
 };
 
 export default ProfilePage;

@@ -1,16 +1,34 @@
-import React, { useState, useEffect } from "react";
-import { Container, Typography, Button, Grid, Paper, IconButton } from "@mui/material";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Container,
+  Typography,
+  Button,
+  Grid,
+  Paper,
+  IconButton,
+} from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { Settings, PlayArrow, Stop } from "@mui/icons-material";  // ✅ PlayArrow & Stop now used
+import { Settings, PlayArrow, Stop, Delete } from "@mui/icons-material";
 import StockSearch from "../components/trading/StockSearch";
-import TradeSettingsModal from "../components/trading/TradeSettingsModal";  // ✅ Now used
-import { fetchMarketData, fetchLiveStockPrice } from "../services/marketDataService";
+import TradeSettingsModal from "../components/trading/TradeSettingsModal";
+import {
+  fetchStockSnapshot,
+  fetchLiveStockPrice,
+} from "../services/marketDataService";
 
 const DashboardPage = () => {
   const [selectedStocks, setSelectedStocks] = useState([]);
-  const [tradeSettingsOpen, setTradeSettingsOpen] = useState(false);  // ✅ Now used
-  const [selectedStockForSettings, setSelectedStockForSettings] = useState(null);  // ✅ Now used
+  const [tradeSettingsOpen, setTradeSettingsOpen] = useState(false);
+  const [selectedStockForSettings, setSelectedStockForSettings] =
+    useState(null);
   const [trading, setTrading] = useState(false);
+
+  const selectedStocksRef = useRef([]);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    selectedStocksRef.current = selectedStocks;
+  }, [selectedStocks]);
 
   // ✅ Handle Stock Selection
   const handleStockSelect = async (symbol, exchange, instrument) => {
@@ -18,47 +36,111 @@ const DashboardPage = () => {
       alert("You can track a maximum of 5 stocks.");
       return;
     }
-    const stockData = await fetchMarketData(symbol, exchange, instrument);
-    setSelectedStocks([...selectedStocks, { id: symbol, ...stockData, status: "Not Started", profitLoss: 0 }]);
+
+    const alreadyAdded = selectedStocks.some(
+      (s) => s.symbol === symbol && s.exchange === exchange
+    );
+    if (alreadyAdded) {
+      alert("Stock already added.");
+      return;
+    }
+
+    try {
+      const stockData = await fetchStockSnapshot(symbol);
+      if (!stockData || stockData.error) {
+        alert("Failed to fetch stock details: " + (stockData?.error || ""));
+        return;
+      }
+
+      const newStock = {
+        id: `${symbol}_${exchange}`,
+        name: stockData.name || symbol,
+        symbol,
+        exchange,
+        instrument,
+        livePrice: stockData.livePrice || 0,
+        target: 0,
+        stopLoss: 0,
+        amount: 0,
+        status: "Not Started",
+        profitLoss: 0,
+      };
+
+      setSelectedStocks((prev) => [...prev, newStock]);
+    } catch (error) {
+      console.error("Stock add failed", error);
+      alert("Unexpected error while adding stock.");
+    }
   };
 
-  // ✅ Start/Stop Trading
-  const handleStartTrade = () => setTrading(true);
-  const handleStopTrade = () => setTrading(false);
+  // ✅ Remove stock from list
+  const handleRemoveStock = (id) => {
+    setSelectedStocks((prev) => prev.filter((stock) => stock.id !== id));
+  };
 
-  useEffect(() => {
-    if (!trading) return;
-    const interval = setInterval(async () => {
-      const updatedStocks = await Promise.all(
-        selectedStocks.map(async (stock) => {
-          const livePrice = await fetchLiveStockPrice(stock.symbol);
-          return { ...stock, livePrice };
-        })
-      );
-      setSelectedStocks(updatedStocks);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [trading, selectedStocks]);
-
-  // ✅ Open Trade Settings Modal
+  // ✅ Open modal
   const openTradeSettings = (stock) => {
     setSelectedStockForSettings(stock);
     setTradeSettingsOpen(true);
   };
 
-  // ✅ Grid Columns (Fixed Titles)
+  // ✅ Start/Stop trading
+  const handleStartTrade = () => setTrading(true);
+  const handleStopTrade = () => setTrading(false);
+
+  // ✅ Real-time price updates
+  useEffect(() => {
+    if (!trading) return;
+
+    const interval = setInterval(async () => {
+      const updated = await Promise.all(
+        selectedStocksRef.current.map(async (stock) => {
+          try {
+            const price = await fetchLiveStockPrice(
+              stock.symbol,
+              stock.exchange,
+              stock.instrument
+            );
+            return { ...stock, livePrice: price };
+          } catch {
+            return stock;
+          }
+        })
+      );
+      setSelectedStocks(updated);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [trading]);
+
+  // ✅ DataGrid columns
   const columns = [
-    { field: "symbol", headerName: "Stock Symbol", width: 150 },
-    { field: "exchange", headerName: "Exchange", width: 120 },
+    { field: "name", headerName: "Stock Name", width: 180 },
+    { field: "symbol", headerName: "Symbol", width: 120 },
+    { field: "exchange", headerName: "Exchange", width: 100 },
     { field: "instrument", headerName: "Instrument", width: 120 },
     { field: "livePrice", headerName: "Live Price (₹)", width: 120 },
-    { field: "target", headerName: "Target Price (₹)", width: 120 },
+    { field: "target", headerName: "Target (₹)", width: 120 },
     { field: "stopLoss", headerName: "Stop Loss (₹)", width: 120 },
-    { field: "amount", headerName: "Investment (₹)", width: 120 },
-    { field: "status", headerName: "Trading Status", width: 130 },
-    { field: "settings", headerName: "Settings", width: 100, renderCell: (params) => (
-        <IconButton onClick={() => openTradeSettings(params.row)}>  {/* ✅ Now used */}
+    { field: "amount", headerName: "Amount (₹)", width: 120 },
+    { field: "status", headerName: "Status", width: 130 },
+    {
+      field: "settings",
+      headerName: "Settings",
+      width: 90,
+      renderCell: (params) => (
+        <IconButton onClick={() => openTradeSettings(params.row)}>
           <Settings />
+        </IconButton>
+      ),
+    },
+    {
+      field: "remove",
+      headerName: "Remove",
+      width: 80,
+      renderCell: (params) => (
+        <IconButton onClick={() => handleRemoveStock(params.row.id)}>
+          <Delete />
         </IconButton>
       ),
     },
@@ -66,28 +148,48 @@ const DashboardPage = () => {
 
   return (
     <Container>
-      <Typography variant="h4" sx={{ fontWeight: "bold", color: "#007bff", mb: 3 }}>
+      <Typography variant="h4" fontWeight="bold" color="primary" gutterBottom>
         Algo Trading Dashboard
       </Typography>
 
-      {/* ✅ Grid Layout for Better Structure */}
       <Grid container spacing={2}>
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12} sm={8}>
           <StockSearch onSearch={handleStockSelect} />
         </Grid>
-        <Grid item xs={12} md={4}>
-          <Button variant="contained" color="success" onClick={handleStartTrade} disabled={trading} startIcon={<PlayArrow />}>
-            Start Trading
+
+        <Grid item xs={6} sm={2}>
+          <Button
+            fullWidth
+            variant="contained"
+            color="success"
+            onClick={handleStartTrade}
+            disabled={trading}
+            startIcon={<PlayArrow />}
+          >
+            Start
           </Button>
-          <Button variant="contained" color="error" onClick={handleStopTrade} disabled={!trading} startIcon={<Stop />}>
-            Stop Trading
+        </Grid>
+        <Grid item xs={6} sm={2}>
+          <Button
+            fullWidth
+            variant="contained"
+            color="error"
+            onClick={handleStopTrade}
+            disabled={!trading}
+            startIcon={<Stop />}
+          >
+            Stop
           </Button>
         </Grid>
       </Grid>
 
-      {/* ✅ Data Grid for Selected Stocks */}
-      <Paper sx={{ height: 400, width: "100%", mt: 3, padding: 2, boxShadow: 2 }}>
-        <DataGrid rows={selectedStocks} columns={columns} getRowId={(row) => row.id} />
+      <Paper sx={{ mt: 4, height: 430, padding: 2 }}>
+        <DataGrid
+          rows={selectedStocks}
+          columns={columns}
+          getRowId={(row) => row.id}
+          disableRowSelectionOnClick
+        />
       </Paper>
 
       {/* ✅ Trade Settings Modal */}

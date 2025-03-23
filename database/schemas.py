@@ -45,3 +45,12 @@ class OTPVerification(BaseModel):
     country_code: str = Field(..., min_length=2, max_length=5, example="+1")
     phone_number: str = Field(..., min_length=10, max_length=15, example="9876543210")
     otp: str = Field(..., min_length=6, max_length=6, example="123456")
+    
+    
+class UserProfileUpdate(BaseModel):
+    name: str = Field(..., min_length=3, max_length=50, example="John Doe")
+    email: EmailStr = Field(..., example="user@example.com")    
+    brokerAccounts: str = Field(..., example="Zerodha, Upstox")
+    
+        
+    

@@ -1,41 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from database.connection import get_db
-from typing import List, Dict
-from datetime import datetime
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from services.trade_monitor_service import TradeMonitorService
+import logging
 
-from database.models import Position, Trade
+router = APIRouter()
+trade_monitor = TradeMonitorService()
 
-router = APIRouter(prefix="/api/trading", tags=["trading"])
+# Store active WebSocket connections
+active_connections = []
 
-@router.post("/order")
-async def place_order(
-    trade_request: Dict,
-    db: Session = Depends(get_db)
-):
+@router.websocket("/ws/trades")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    active_connections.append(websocket)
+    logging.info("✅ New WebSocket connection established.")
+
     try:
-        trade = Trade(
-            symbol=trade_request['symbol'],
-            trade_type=trade_request['trade_type'],
-            quantity=trade_request['quantity'],
-            price=trade_request.get('price'),
-            stop_loss=trade_request.get('stop_loss'),
-            target=trade_request.get('target'),
-            status='PENDING',
-            placed_at=datetime.utcnow()
-        )
-        db.add(trade)
-        db.commit()
-        db.refresh(trade)
-        return {"message": "Order placed successfully", "trade_id": trade.id}
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/positions")
-async def get_positions(db: Session = Depends(get_db)):
-    try:
-        positions = db.query(Position).all()
-        return positions
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        while True:
+            trade_update = trade_monitor.get_latest_trade()
+            if trade_update:
+                for connection in active_connections:
+                    await connection.send_json(trade_update)
+    except WebSocketDisconnect:
+        active_connections.remove(websocket)
+        logging.info("🔌 WebSocket Disconnected.")

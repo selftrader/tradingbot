@@ -1,4 +1,4 @@
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+const API_URL = process.env.REACT_APP_API_URL;
 
 // ✅ Signup API Call
 export const signup = async (credentials) => {
@@ -98,17 +98,9 @@ export const login = async (credentials) => {
 
 // ✅ Logout Function
 export const logout = () => {
-    console.log("✅ Logout function called!");
-
-    // ✅ Clear authentication data
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("isLoggedIn");
-
-    // ✅ Notify all components to update UI
-    window.dispatchEvent(new Event("storage")); 
-
-    // ✅ Redirect to Login Page
     window.location.href = "/";
 };
 
@@ -151,25 +143,25 @@ export const fetchWithAuth = async (url, options = {}) => {
 };
 
 export const refreshAccessToken = async () => {
-    // ✅ Ensure `refreshToken` is properly defined
-    const refreshToken = localStorage.getItem("refresh_token"); 
+    const refreshToken = localStorage.getItem("refresh_token");
 
     if (!refreshToken) {
-        console.error("No refresh token found.");
+        console.warn("No refresh token found.");
         return null;
     }
 
     try {
-        const response = await fetch(`${API_URL}/api/auth/refresh`, {
+        const response = await fetch(`${API_URL}/api/auth/refresh-token`, {
             method: "POST",
             headers: {
+                "Refresh-Token": refreshToken,
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ refresh_token: refreshToken }), // ✅ Use `refreshToken`
+            credentials: "include",
         });
 
         if (!response.ok) {
-            console.warn("Refresh token is invalid or expired.");
+            console.warn("Refresh token failed.");
             return null;
         }
 
@@ -177,7 +169,19 @@ export const refreshAccessToken = async () => {
         localStorage.setItem("access_token", data.access_token);
         return data.access_token;
     } catch (error) {
-        console.error("Failed to refresh token:", error);
+        console.error("Token refresh error:", error);
         return null;
     }
+};
+
+
+export const getAccessToken = () => localStorage.getItem("access_token");
+export const getRefreshToken = () => localStorage.getItem("refresh_token");
+
+export const setAccessToken = (token) => localStorage.setItem("access_token", token);
+export const setRefreshToken = (token) => localStorage.setItem("refresh_token", token);
+
+export const clearTokens = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
 };
