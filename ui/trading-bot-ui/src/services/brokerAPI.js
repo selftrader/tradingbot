@@ -14,7 +14,19 @@ const brokerAPI = {
     addBroker: async (brokerData) => {
         const response = await apiClient.post("/broker/add", brokerData);
         return response.data;
-    }
+    },
+
+    initUpstoxAuth: async (credentials) => {
+        const response = await apiClient.post("/broker/upstox/init-auth", credentials);
+        return response.data;
+      },
+
+    initFyersAuth: async (payload) => {
+        const response = await apiClient.post("/broker/fyers/init-auth", payload);
+        return response.data;
+    },
+    
+    
 };
 
 export default brokerAPI;

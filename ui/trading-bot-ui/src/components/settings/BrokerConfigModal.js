@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Modal, Box, Typography, TextField, Button, Select, MenuItem, CircularProgress, IconButton } from "@mui/material";
 import { Close } from "@mui/icons-material";
 import brokerAPI from "../../services/brokerAPI";  // ✅ Use API service
-
+const BASE_URL = process.env.REACT_APP_API_URL;
 const brokers = ["Zerodha", "Upstox", "Dhan", "Angel One", "Fyers"];
 const fields = {
     "Dhan": ["client_id", "access_token"],
@@ -71,6 +71,63 @@ const BrokerConfigModal = ({ open, onClose, refreshBrokers, existingBrokers }) =
             setLoading(false);
             return;
         }
+
+           // ✅ Special handling for Upstox
+           if (broker.broker_name === "Upstox") {
+            try {
+              const response = await brokerAPI.initUpstoxAuth({
+                api_key: broker.credentials.api_key,
+                api_secret: broker.credentials.api_secret,
+                redirect_uri: `${BASE_URL}/api/broker/upstox/callback`,  // Match with registered URI
+              });
+          
+              const authUrl = response?.auth_url;
+              if (authUrl) {
+                window.open(authUrl, "_blank");
+                onClose();
+                return;
+              }
+          
+              setError("Failed to retrieve auth URL.");
+            } catch (error) {
+              console.error(error);
+              setError(error.response?.data?.detail || "Upstox auth failed");
+            } finally {
+              setLoading(false);
+            }
+            return;
+          }
+
+          if (broker.broker_name === "Fyers") {
+            try {
+              const response = await brokerAPI.initFyersAuth({
+                broker: "Fyers",
+                config: {
+                  client_id: broker.credentials.client_id,
+                  secret_key: broker.credentials.secret_key,
+                  redirect_uri: "http://127.0.0.1:8000/api/broker/fyers/callback", // ✅ Correct the redirect URI too
+                }
+              });
+          
+              const authUrl = response?.auth_url;
+              if (authUrl) {
+                window.open(authUrl, "_blank");
+                onClose();
+                return;
+              }
+          
+              setError("Failed to retrieve Fyers auth URL.");
+            } catch (error) {
+              console.error(error);
+              const err = error.response?.data;
+              setError(Array.isArray(err?.detail) ? err.detail : err?.detail || "Fyers auth failed");
+            } finally {
+              setLoading(false);
+            }
+            return;
+          }
+          
+          
 
         try {
             await brokerAPI.addBroker(broker);

@@ -92,7 +92,10 @@ ui/trading-bot-ui/dist/
 .dockerignore
 docker-compose.override.yml
 .DS_Store
-*.swp
-
+*.zip
+*.gz
+*.rar
+*.7z
+*.tar   
 
 models/trading_model.pkl

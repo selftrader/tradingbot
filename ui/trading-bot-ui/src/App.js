@@ -12,6 +12,7 @@ import ThemeProviderWrapper from "./context/ThemeContext";
 import { CssBaseline } from "@mui/material";
 import PrivateRoute from "./routes/PrivateRoute";
 import StockAnalysisPage from "./pages/StockAnalysisPage";
+import ProfilePage from "./pages/ProfilePage";
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());
@@ -35,6 +36,7 @@ const App = () => {
             <Route path="/trade-control" element={<TradeControlPage />} />
             <Route path="/config" element={<ConfigPage />} />
             <Route path="/analysis" element={<StockAnalysisPage />} />
+            <Route path="/profile" element={<ProfilePage />} /> {/* ✅ Added Profile Page */}
           </Route>
 
           <Route path="/login" element={<LoginPage />} />

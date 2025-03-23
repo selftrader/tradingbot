@@ -1,3 +1,4 @@
+from datetime import datetime
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, JSON, ForeignKey, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -36,7 +37,11 @@ class User(Base):
     ai_models = relationship("AIModel", back_populates="user", cascade="all, delete")
     strategies = relationship("Strategy", back_populates="user", cascade="all, delete")
     trading_performance = relationship("TradingPerformance", back_populates="user", cascade="all, delete")
+    trade_performance = relationship("TradePerformance", back_populates="user", cascade="all, delete")
     trading_reports = relationship("TradingReport", back_populates="user", cascade="all, delete")
+    historical_data = relationship("HistoricalData", back_populates="user", cascade="all, delete")
+    user_capital = relationship("UserCapital", back_populates="user", cascade="all, delete")
+    
 
     # Password Management
     def set_password(self, password):
@@ -357,3 +362,75 @@ class OTP(Base):
     phone_number = Column(String, unique=True, nullable=False)
     otp_code = Column(String, nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False, default=func.now())  # ✅ Ensure timezone-aware datetime
+
+class HistoricalData(Base):
+    __tablename__ = "historical_data"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    symbol = Column(String, nullable=False)
+    exchange = Column(String, nullable=False, default="NSE")
+    date = Column(DateTime, nullable=False)
+    open = Column(Float, nullable=False)
+    high = Column(Float, nullable=False)
+    low = Column(Float, nullable=False)
+    close = Column(Float, nullable=False)
+    volume = Column(Float, nullable=False)
+
+    user = relationship("User", back_populates="historical_data")   
+    
+
+class UserCapital(Base):
+    __tablename__ = "user_capital"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    total_capital = Column(Float, nullable=False)  # User's total capital
+    risk_percentage = Column(Float, nullable=False, default=1)  # Risk per trade (%)  
+    
+    user = relationship("User", back_populates="user_capital")
+ 
+ 
+class TradeSignal(Base):
+    __tablename__ = "trade_signals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    symbol = Column(String, nullable=False)
+    trade_type = Column(String, nullable=False)  # "BUY" or "SELL"
+    confidence = Column(Float, nullable=False)  # AI Confidence Score
+    execution_status = Column(String, nullable=False, default="PENDING")  # "PENDING", "EXECUTED", "IGNORED"
+    signal_time =  Column(DateTime(timezone=True), nullable=False, default=func.now())
+
+
+class AITradeJournal(Base):
+    __tablename__ = "ai_trade_journal"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    symbol = Column(String, nullable=False)
+    trade_type = Column(String, nullable=False)
+    ai_confidence = Column(Float, nullable=False)
+    execution_status = Column(String, nullable=False)  # "EXECUTED" or "IGNORED"
+    profit_loss = Column(Float, nullable=True)  # Store P&L once trade closes
+    trade_time = Column(DateTime(timezone=True), nullable=False, default=func.now())
+  
+  
+  
+
+class TradePerformance(Base):
+    __tablename__ = "trade_performance"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)  # ✅ Primary Key
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    symbol = Column(String, nullable=False)
+    trade_type = Column(String, nullable=False)  # "BUY" or "SELL"
+    quantity = Column(Integer, nullable=False)
+    entry_price = Column(Float, nullable=False)
+    trailing_stop_loss = Column(Float, nullable=True)  # ✅ Dynamic Trailing Stop-Loss
+    exit_price = Column(Float, nullable=True)
+    profit_loss = Column(Float, nullable=True)
+    trade_time = Column(DateTime(timezone=True), nullable=False, default=func.now())
+    status = Column(String, nullable=False, default="OPEN")  # "OPEN" or "CLOSED"  
+    
+    user = relationship("User", back_populates="trade_performance")

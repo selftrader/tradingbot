@@ -2,18 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database.connection import get_db
 from database.models import User
-from services.auth_service import get_current_user  # ✅ Middleware for authentication
+from database.schemas import UserProfileUpdate
+from services.auth_service import get_current_user
+from services.user_service import get_user_profile, update_user_profile  # ✅ Middleware for authentication
 
 router = APIRouter()
 
 @router.get("/profile")
-def get_user_profile(current_user: User = Depends(get_current_user)):
-    """Fetch the currently logged-in user's profile"""
-    return {"email": current_user.email, "name": current_user.full_name}
+def profile(db: Session = Depends(get_db), user_id: int = 1):  # Replace with actual user ID from auth
+    return get_user_profile(db, user_id)
 
-@router.put("/profile")
-def update_user_profile(name: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Update the user's profile name"""
-    current_user.name = name
-    db.commit()
-    return {"message": "Profile updated successfully"}
+@router.put("/profile/update")
+def update_profile(data: UserProfileUpdate, db: Session = Depends(get_db), user_id: int = 1):
+    return update_user_profile(db, user_id, data)
