@@ -11,11 +11,7 @@ import { DataGrid } from "@mui/x-data-grid";
 import { Settings, PlayArrow, Stop, Delete } from "@mui/icons-material";
 import StockSearch from "../components/trading/StockSearch";
 import TradeSettingsModal from "../components/trading/TradeSettingsModal";
-import {
-  fetchStockSnapshot,
-  fetchLiveStockPrice,
-} from "../services/marketDataService";
-
+import LiveLTPBatch from "../components/trading/LiveLTPBatch";
 const DashboardPage = () => {
   const [selectedStocks, setSelectedStocks] = useState([]);
   const [tradeSettingsOpen, setTradeSettingsOpen] = useState(false);
@@ -25,104 +21,116 @@ const DashboardPage = () => {
 
   const selectedStocksRef = useRef([]);
 
-  // Keep ref in sync with state
   useEffect(() => {
     selectedStocksRef.current = selectedStocks;
   }, [selectedStocks]);
 
-  // ✅ Handle Stock Selection
-  const handleStockSelect = async (symbol, exchange, instrument) => {
-    if (selectedStocks.length >= 5) {
-      alert("You can track a maximum of 5 stocks.");
-      return;
-    }
+  // ✅ WebSocket callback to update market data
+  const updateLTPs = (ltpMap) => {
+    setSelectedStocks((prevStocks) =>
+      prevStocks.map((stock) => ({
+        ...stock,
+        livePrice: ltpMap[stock.instrumentKey]?.ltp ?? stock.livePrice,
+        volume: ltpMap[stock.instrumentKey]?.volume ?? stock.volume,
+        avgPrice: ltpMap[stock.instrumentKey]?.avg_price ?? stock.avgPrice,
+        lastUpdate: ltpMap[stock.instrumentKey]?.timestamp
+          ? new Date(ltpMap[stock.instrumentKey].timestamp).getTime()
+          : stock.lastUpdate,
+      }))
+    );
+  };
 
+  // ✅ Handle Stock Selection
+  const handleStockSelect = (stockData) => {
     const alreadyAdded = selectedStocks.some(
-      (s) => s.symbol === symbol && s.exchange === exchange
+      (s) => s.symbol === stockData.symbol && s.exchange === stockData.exchange
     );
     if (alreadyAdded) {
       alert("Stock already added.");
       return;
     }
 
-    try {
-      const stockData = await fetchStockSnapshot(symbol);
-      if (!stockData || stockData.error) {
-        alert("Failed to fetch stock details: " + (stockData?.error || ""));
-        return;
-      }
+    const newStock = {
+      id: `${stockData.exchange}_${stockData.symbol}`,
+      name: stockData.name,
+      symbol: stockData.symbol,
+      exchange: stockData.exchange,
+      instrument: stockData.instrument,
+      instrumentKey: stockData.instrumentKey,
+      segment: stockData.segment,
+      lotSize: stockData.lot_size,
+      tickSize: stockData.tick_size,
+      livePrice: 0,
+      volume: 0,
+      avgPrice: 0,
+      lastUpdate: null,
+      buying: 0,
+      selling: 0,
+      amount: 0,
+      status: "Not Started",
+      profitLoss: 0,
+    };
 
-      const newStock = {
-        id: `${symbol}_${exchange}`,
-        name: stockData.name || symbol,
-        symbol,
-        exchange,
-        instrument,
-        livePrice: stockData.livePrice || 0,
-        target: 0,
-        stopLoss: 0,
-        amount: 0,
-        status: "Not Started",
-        profitLoss: 0,
-      };
-
-      setSelectedStocks((prev) => [...prev, newStock]);
-    } catch (error) {
-      console.error("Stock add failed", error);
-      alert("Unexpected error while adding stock.");
-    }
+    setSelectedStocks((prev) => [...prev, newStock]);
   };
 
-  // ✅ Remove stock from list
   const handleRemoveStock = (id) => {
     setSelectedStocks((prev) => prev.filter((stock) => stock.id !== id));
   };
 
-  // ✅ Open modal
   const openTradeSettings = (stock) => {
     setSelectedStockForSettings(stock);
     setTradeSettingsOpen(true);
   };
 
-  // ✅ Start/Stop trading
   const handleStartTrade = () => setTrading(true);
   const handleStopTrade = () => setTrading(false);
 
-  // ✅ Real-time price updates
-  useEffect(() => {
-    if (!trading) return;
-
-    const interval = setInterval(async () => {
-      const updated = await Promise.all(
-        selectedStocksRef.current.map(async (stock) => {
-          try {
-            const price = await fetchLiveStockPrice(
-              stock.symbol,
-              stock.exchange,
-              stock.instrument
-            );
-            return { ...stock, livePrice: price };
-          } catch {
-            return stock;
-          }
-        })
-      );
-      setSelectedStocks(updated);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [trading]);
-
-  // ✅ DataGrid columns
   const columns = [
     { field: "name", headerName: "Stock Name", width: 180 },
     { field: "symbol", headerName: "Symbol", width: 120 },
     { field: "exchange", headerName: "Exchange", width: 100 },
-    { field: "instrument", headerName: "Instrument", width: 120 },
-    { field: "livePrice", headerName: "Live Price (₹)", width: 120 },
-    { field: "target", headerName: "Target (₹)", width: 120 },
-    { field: "stopLoss", headerName: "Stop Loss (₹)", width: 120 },
-    { field: "amount", headerName: "Amount (₹)", width: 120 },
+    { field: "instrumentKey", headerName: "Instrument", width: 120 },
+    {
+      field: "livePrice",
+      headerName: "Live Price (₹)",
+      width: 140,
+      renderCell: (params) => (
+        <Typography variant="body2">
+          ₹{params.row.livePrice || "Loading..."}
+        </Typography>
+      ),
+    },
+    {
+      field: "volume",
+      headerName: "Volume",
+      width: 120,
+      renderCell: (params) => (
+        <Typography variant="body2">
+          {params.row.volume?.toLocaleString() || "-"}
+        </Typography>
+      ),
+    },
+    {
+      field: "avgPrice",
+      headerName: "Avg Price (₹)",
+      width: 140,
+      renderCell: (params) => (
+        <Typography variant="body2">₹{params.row.avgPrice || "-"}</Typography>
+      ),
+    },
+    {
+      field: "lastUpdate",
+      headerName: "Last Update",
+      width: 180,
+      renderCell: (params) => (
+        <Typography variant="body2">
+          {params.row.lastUpdate
+            ? new Date(params.row.lastUpdate).toLocaleTimeString()
+            : "-"}
+        </Typography>
+      ),
+    },
     { field: "status", headerName: "Status", width: 130 },
     {
       field: "settings",
@@ -148,15 +156,14 @@ const DashboardPage = () => {
 
   return (
     <Container>
-      <Typography variant="h4" fontWeight="bold" color="primary" gutterBottom>
+      {/* <Typography variant="h4" fontWeight="bold" color="primary" gutterBottom>
         Algo Trading Dashboard
-      </Typography>
+      </Typography> */}
 
       <Grid container spacing={2}>
         <Grid item xs={12} sm={8}>
           <StockSearch onSearch={handleStockSelect} />
         </Grid>
-
         <Grid item xs={6} sm={2}>
           <Button
             fullWidth
@@ -191,6 +198,9 @@ const DashboardPage = () => {
           disableRowSelectionOnClick
         />
       </Paper>
+
+      {/* ✅ Live LTP WebSocket Hook */}
+      <LiveLTPBatch stocks={selectedStocks} updateLTPs={updateLTPs} />
 
       {/* ✅ Trade Settings Modal */}
       {tradeSettingsOpen && (

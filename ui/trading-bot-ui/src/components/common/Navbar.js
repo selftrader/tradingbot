@@ -54,6 +54,7 @@ const Navbar = () => {
             <Button color="inherit" component={RouterLink} to="/trade-control">Trade Control</Button>
             <Button color="inherit" component={RouterLink} to="/config">Config</Button>
             <Button color="inherit" component={RouterLink} to="/analysis">Stock Analysis</Button>
+            <Button color="inherit" component={RouterLink} to="/backtesting">Backtesting</Button>
             {/* <Button color="inherit" onClick={handleLogout}>Logout</Button> */}
             <ThemeToggle />
           </Box>

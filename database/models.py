@@ -434,3 +434,20 @@ class TradePerformance(Base):
     status = Column(String, nullable=False, default="OPEN")  # "OPEN" or "CLOSED"  
     
     user = relationship("User", back_populates="trade_performance")
+
+
+class BrokerInstrument(Base):
+    __tablename__ = "broker_instruments"
+
+    id = Column(Integer, primary_key=True)
+    broker_name = Column(String, nullable=False, default="Upstox")
+    symbol = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    exchange = Column(String, nullable=False, index = True)
+    segment = Column(String, nullable=False)
+    instrument_type = Column(String, nullable=False)
+    isin = Column(String, nullable=True)
+    lot_size = Column(Float, nullable=True)
+    tick_size = Column(Float, nullable=True)
+    instrument_key = Column(String, nullable=False, unique=True)
+    security_type = Column(String, nullable=True)

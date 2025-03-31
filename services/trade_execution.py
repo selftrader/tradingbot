@@ -1,7 +1,7 @@
 import numpy as np
 from requests import Session
 from services.dhan_client import get_dhan_client
-from services.market_data_service import fetch_live_stock_price
+from services.dhan_service import fetch_live_stock_price
 from services.telegram_alerts import send_telegram_message
 from services.notifications import send_trade_email, send_trade_sms
 from services.ai_model import train_lstm_model, predict_future_prices

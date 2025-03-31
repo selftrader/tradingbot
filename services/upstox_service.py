@@ -1,7 +1,7 @@
 import os
 import requests
 from urllib.parse import urlencode
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from fastapi import HTTPException
 from database.models import BrokerConfig
 
@@ -70,3 +70,8 @@ def exchange_code_for_token(code: str,api_key: str, api_secret: str):
     if response.status_code != 200:
         raise Exception(f"Token exchange failed: {response.text}")
     return response.json()
+
+
+def calculate_upstox_expiry():
+    now = datetime.now()
+    expiry_time = datetime.combine(now.date(), time(hour=3, minute=30))

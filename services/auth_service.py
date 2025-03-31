@@ -15,7 +15,7 @@ from router.broker_router import SECRET_KEY
 ALGORITHM = "HS256"
 REFRESH_SECRET = os.getenv("REFRESH_SECRET", "your-refresh-secret-key")
 SECRET_KEY = os.getenv("JWT_SECRET", "your-access-secret-key")
-ACCESS_TOKEN_EXPIRE_MINUTES = 15  # Access Token valid for 15 minutes
+ACCESS_TOKEN_EXPIRE_MINUTES = 600  # Access Token valid for 15 minutes
 REFRESH_TOKEN_EXPIRE_DAYS = 7  # ✅ Refresh Token valid for 7 days
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
