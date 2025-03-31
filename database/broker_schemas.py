@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 
 # ✅ Base Schema for All Brokers
 class BrokerConfigSchema(BaseModel):
@@ -22,6 +23,7 @@ class UpstoxBrokerSchema(BrokerConfigSchema):
     access_token: str
     client_id: str
     refresh_token: Optional[str] = None  # ✅ Optional refresh token
+    token_expiry: Optional[datetime] = None  # ✅ Token expiry timestamp
 
 # ✅ Dhan Broker Schema
 class DhanBrokerSchema(BrokerConfigSchema):

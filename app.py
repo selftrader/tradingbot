@@ -32,7 +32,9 @@ from services import stop_loss_router
 from services.auto_trade_execution import auto_execute_trades
 from services.dynamic_stop_loss import calculate_dynamic_stop_loss
 from services.trailing_stop_loss import update_trailing_stop_loss
-
+from ws_router.upstox_ltp_ws import ws_upstox_router
+from router.market_ws import market_ws_router
+from router.backtest_router import backtesting_router
 # Load environment variables
 load_dotenv()
 
@@ -59,7 +61,7 @@ async def lifespan(app: FastAPI):
     yield
     logger.info("Shutting down application...")
 
-# ✅ Initialize FastAPI App
+# Initialize FastAPI App
 app = FastAPI(
     title="Trading Bot API",
     description="AI-powered automated trading system",
@@ -95,6 +97,9 @@ app.include_router(market_data_router)
 app.include_router(analytics_router.router)
 app.include_router(order_router.router)
 app.include_router(stop_loss_router.router)
+app.include_router(ws_upstox_router)
+app.include_router(market_ws_router)
+app.include_router(backtesting_router, prefix="/api/backtesting")
 
 
 

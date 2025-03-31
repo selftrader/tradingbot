@@ -11,7 +11,11 @@ import requests
 from database.connection import SessionLocal, get_db
 from database.models import BrokerConfig, User
 from services.auth_service import get_current_user
-from services.upstox_service import exchange_code_for_token, generate_upstox_auth_url
+from services.upstox_service import (
+    calculate_upstox_expiry,
+    exchange_code_for_token,
+    generate_upstox_auth_url,
+)
 from services.upstox_temp_store import (
     store_upstox_credentials_temp,
     get_upstox_credentials_temp,
@@ -29,29 +33,6 @@ UPSTOX_REDIRECT_URI = os.getenv("UPSTOX_REDIRECT_URI")
 class UpstoxConfiguration(BaseModel):
     broker: str
     config: Dict[str, str]
-
-
-# @upstox_router.get("/callback")  # Path matches the callback URL from Upstox
-# async def upstox_callback(code: str = Query(...), state: Optional[str] = Query(None)):
-#     """
-#     Callback endpoint that receives the authorization code from Upstox
-#     """
-#     try:
-#         # Get stored credentials
-#         stored_creds = next(iter(credentials_store.values()), None)
-#         if not stored_creds:
-#             raise HTTPException(
-#                 status_code=400,
-#                 detail="No stored credentials found"
-#             )
-
-
-#         # Clear stored credentials
-#         credentials_store.clear()
-
-
-#     except Exception as e:
-#         raise HTTPException(status_code=400, detail=str(e))
 
 
 @upstox_router.get("/status")
@@ -80,61 +61,131 @@ def initiate_upstox_auth(data: dict, user_id: int = Depends(get_current_user)):
 def upstox_callback(code: str, state: str = None, db: Session = Depends(get_db)):
     try:
         user_id = int(state)
-        user = db.query(User).filter(User.id == state).first() if state else None
-
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-
-        # ✅ Get creds from Redis
-        creds = get_upstox_credentials_temp(user_id)
-        if not creds:
-            logger.error(f"No creds found in Redis for user_id={user_id}")
-            raise HTTPException(status_code=400, detail="Missing temporary credentials")
-
-        logger.info(f"Retrieved creds for user_id={user_id}")
-
-        # ✅ Exchange for access token
-        tokenResponse = exchange_code_for_token(
-            code, creds["client_id"], creds["client_secret"]
-        )
-
-        # ✅ Find user
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            logger.error(f"User with id {user_id} not found in DB.")
             raise HTTPException(status_code=404, detail="User not found")
 
-        # ✅ Save broker config
-        broker = BrokerConfig(
-            user_id=user_id,
-            client_id=tokenResponse["user_id"],
-            broker_name=tokenResponse["broker"],
-            api_key=creds["client_id"],
-            api_secret=creds["client_secret"],
-            access_token=tokenResponse["access_token"],
-            created_at=datetime.now(),
-            is_active=tokenResponse["is_active"],
-            additional_params=tokenResponse,
-            config={
-                "email": tokenResponse.get("email"),
-                "user_name": tokenResponse.get("user_name"),
-                "user_type": tokenResponse.get("user_type"),
-                "poa": tokenResponse.get("poa"),
-                "ddpi": tokenResponse.get("ddpi"),
-                "exchanges": tokenResponse.get("exchanges"),
-                "products": tokenResponse.get("products"),
-                "order_types": tokenResponse.get("order_types"),
-                "extended_token": tokenResponse.get("extended_token"),
-            },
+        existing_config = (
+            db.query(BrokerConfig)
+            .filter(
+                BrokerConfig.user_id == user_id,
+                BrokerConfig.broker_name.ilike("upstox"),
+            )
+            .first()
         )
-        db.add(broker)
-        db.commit()
 
+        client_id = existing_config.api_key
+        client_secret = existing_config.api_secret
+
+        # ✅ Retrieve credentials from temp store
+        if existing_config:
+            creds = {
+                "client_id": existing_config.api_key,
+                "client_secret": existing_config.api_secret,
+            }
+        else:
+            creds = get_upstox_credentials_temp(user_id)
+
+        if not creds:
+            raise HTTPException(status_code=400, detail="Missing temporary credentials")
+
+        # ✅ Exchange code for tokens
+        token_response = exchange_code_for_token(
+            code, creds["client_id"], creds["client_secret"]
+        )
+        access_token_expiry = calculate_upstox_expiry()
+
+        # ✅ Check if broker config already exists
+
+        if existing_config:
+            # Update existing config
+            existing_config.access_token = token_response["access_token"]
+            existing_config.api_key = creds["client_id"]
+            existing_config.api_secret = creds["client_secret"]
+            existing_config.access_token_expiry = access_token_expiry
+            existing_config.additional_params = token_response
+            existing_config.is_active = token_response.get("is_active", True)
+            existing_config.config = {
+                "email": token_response.get("email"),
+                "user_name": token_response.get("user_name"),
+                "user_type": token_response.get("user_type"),
+                "poa": token_response.get("poa"),
+                "ddpi": token_response.get("ddpi"),
+                "exchanges": token_response.get("exchanges"),
+                "products": token_response.get("products"),
+                "order_types": token_response.get("order_types"),
+                "extended_token": token_response.get("extended_token"),
+            }
+        else:
+            # 🆕 Create new config
+            new_config = BrokerConfig(
+                user_id=user_id,
+                client_id=token_response["user_id"],
+                broker_name=token_response["broker"],
+                api_key=creds["client_id"],
+                api_secret=creds["client_secret"],
+                access_token=token_response["access_token"],
+                access_token_expiry=access_token_expiry,
+                created_at=datetime.now(),
+                is_active=token_response.get("is_active", True),
+                additional_params=token_response,
+                config={
+                    "email": token_response.get("email"),
+                    "user_name": token_response.get("user_name"),
+                    "user_type": token_response.get("user_type"),
+                    "poa": token_response.get("poa"),
+                    "ddpi": token_response.get("ddpi"),
+                    "exchanges": token_response.get("exchanges"),
+                    "products": token_response.get("products"),
+                    "order_types": token_response.get("order_types"),
+                    "extended_token": token_response.get("extended_token"),
+                },
+            )
+            db.add(new_config)
+
+        db.commit()
         clear_upstox_credentials_temp(user_id)
 
-        logger.info(f"Upstox linked successfully for user_id={user_id}")
+        logger.info(f"✅ Upstox linked successfully for user_id={user_id}")
         return {"message": "Upstox broker linked successfully."}
 
     except Exception as e:
-        logger.exception(f"Upstox callback failed: {str(e)}")
+        logger.exception(f"❌ Upstox callback failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@upstox_router.get("/token")
+def get_upstox_token(current_user: User = Depends(get_current_user)):
+    upstox_token = None
+
+    for broker in current_user.brokers:
+        if broker.broker_name.lower() == "upstox":
+            upstox_token = broker.access_token  # or broker.upstox_access_token
+            break
+
+    if not upstox_token:
+        return {"error": "No Upstox token found"}
+
+    return {"access_token": upstox_token}
+
+
+@upstox_router.post("/refresh/{broker_id}")
+def refresh_upstox_token(broker_id: int, db: Session = Depends(get_db)):
+    broker = db.query(BrokerConfig).filter(BrokerConfig.id == broker_id).first()
+
+    if not broker:
+        raise HTTPException(status_code=404, detail="Broker not found")
+
+    if broker.broker_name.lower() != "upstox":
+        raise HTTPException(
+            status_code=400, detail="Token refresh only supported for Upstox"
+        )
+
+    if not broker.api_key or not broker.api_secret:
+        raise HTTPException(status_code=400, detail="Missing Upstox credentials")
+
+    # Generate OAuth2 auth URL again
+    auth_url = generate_upstox_auth_url(api_key=broker.api_key, user_id=broker.user_id)
+
+    # Return auth_url so frontend can open it in a popup
+    return {"auth_url": auth_url}

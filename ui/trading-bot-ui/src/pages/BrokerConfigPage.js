@@ -68,8 +68,12 @@ const BrokerConfigPage = () => {
   const refreshToken = async (brokerId) => {
     setLoading(true);
     try {
-      await brokerAPI.refreshBrokerToken(brokerId);
-      fetchBrokers();
+      const res = await brokerAPI.refreshBrokerToken(brokerId);
+      if (res.auth_url) {
+        window.open(res.auth_url, "_blank");
+      } else {
+        console.warn("No auth URL returned.");
+      }
     } catch (error) {
       console.error("❌ Failed to refresh token:", error);
     } finally {

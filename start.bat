@@ -7,8 +7,11 @@ alembic upgrade head || (
     exit /b 1
 )
 
+echo  Loading Upstox Instruments...
+python -m scripts.load_upstox_instruments
+
 echo Setting Debug Mode...
 set DEBUG=True
 
 echo Starting FastAPI Server on port 8000 in Debug Mode...
-uvicorn app:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+uvicorn app:app --host 0.0.0.0 --port 8000 --reload 

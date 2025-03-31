@@ -184,7 +184,18 @@ def plot_advanced_results(signals, portfolio, report):
     plt.tight_layout()
     plt.show()
 
-# Main Execution
+# Test for fetching live stock price and WebSocket updates
+def test_fetch_live_stock_price_and_ws():
+    user_id = 1  # Example user ID
+    symbol = "TCS.NS"  # Example stock symbol
+    db = None  # Replace with actual database session if needed
+
+    result = fetch_live_stock_price_and_ws(user_id, symbol, db)
+    
+    assert "livePrice" in result
+    assert "symbol" in result
+    assert result["symbol"] == symbol
+
 if __name__ == "__main__":
     config = CONFIG
     prices = load_csv_data(config['data']['csv_path'])

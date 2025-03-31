@@ -5,11 +5,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Secret Keys for JWT Tokens
-JWT_SECRET = os.getenv("JWT_SECRET", "default_secret_key")
+JWT_SECRET = os.getenv("JWT_SECRET", "your-access-secret-key")
 REFRESH_SECRET = os.getenv("REFRESH_SECRET", JWT_SECRET)
 
 # Token Expiry Settings
-ACCESS_TOKEN_EXPIRE_MINUTES = 15
+ACCESS_TOKEN_EXPIRE_MINUTES = 36000  # 10 hour
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 TELEGRAM_BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"

@@ -13,6 +13,7 @@ import { CssBaseline } from "@mui/material";
 import PrivateRoute from "./routes/PrivateRoute";
 import StockAnalysisPage from "./pages/StockAnalysisPage";
 import ProfilePage from "./pages/ProfilePage";
+import BacktestingPage from "./pages/BacktestingPage";
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());
@@ -35,6 +36,7 @@ const App = () => {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/trade-control" element={<TradeControlPage />} />
             <Route path="/config" element={<ConfigPage />} />
+            <Route path="/backtesting" element={<BacktestingPage />} /> {/* ✅ New Route */}
             <Route path="/analysis" element={<StockAnalysisPage />} />
             <Route path="/profile" element={<ProfilePage />} /> {/* ✅ Added Profile Page */}
           </Route>

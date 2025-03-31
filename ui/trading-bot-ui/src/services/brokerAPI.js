@@ -25,6 +25,12 @@ const brokerAPI = {
         const response = await apiClient.post("/broker/fyers/init-auth", payload);
         return response.data;
     },
+
+    refreshBrokerToken: async (brokerId) => {
+        const response = await apiClient.post(`/broker/upstox/refresh/${brokerId}`);
+        return response.data;
+      },
+      
     
     
 };
