@@ -24,9 +24,7 @@ class UpstoxWebSocketClient:
         self.instrument_keys: List[str] = []
         self.user_email: Optional[str] = None
         self.websocket = None
-        self.stop_flag = False
-        self.snapshot_sent = False
-        self.market_closed_sent = False
+        self.is_connected = False
 
     def get_access_token(self, user_email: str) -> str:
         db = next(get_db())

@@ -8,8 +8,5 @@ PORT=${PORT:-8000}
 echo "Running Alembic database migrations..."
 alembic upgrade head
 
-echo "Loading Upstox Instruments..."
-python scripts/load_upstox_instruments.py
-
 echo "Starting FastAPI server on port $PORT..."
 exec uvicorn app:app --host 0.0.0.0 --port $PORT --workers 4
