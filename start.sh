@@ -2,7 +2,7 @@
 
 set -e
 
-PORT=${PORT:-8000}
+PORT=${PORT:-10000}
 
 echo "Running Alembic database migrations..."
 alembic upgrade head
