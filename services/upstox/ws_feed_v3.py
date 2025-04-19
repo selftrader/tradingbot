@@ -47,9 +47,7 @@ class UpstoxWebSocketClient:
                 seconds=token_data.get("expires_in", 86400)
             )
             db.commit()
-            logger.info("✅ Access token refreshed.")
 
-        logger.info(f"🔐 Using access token for user: {user_email}")
         return broker.access_token
 
     def decode_protobuf(self, buffer):

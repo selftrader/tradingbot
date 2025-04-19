@@ -1,98 +1,154 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-const REACT_APP_WS_URL = process.env.REACT_APP_WS_URL;
-const LiveLTPBatch = ({ stocks, updateLTPs }) => {
-  const wsRef = useRef(null);
-  const [connectionStatus, setConnectionStatus] = useState("disconnected");
-  const lastSentKeys = useRef([]);
+// import { useEffect, useRef, useState, useCallback } from "react";
 
-  const getInstrumentKeys = useCallback(() => {
-    return stocks.map((s) => s.instrumentKey).sort();
-  }, [stocks]);
+// const REACT_APP_WS_URL = process.env.REACT_APP_WS_URL;
 
-  const sendSubscription = (instrumentKeys) => {
-    if (
-      wsRef.current &&
-      wsRef.current.readyState === WebSocket.OPEN &&
-      instrumentKeys.length
-    ) {
-      wsRef.current.send(JSON.stringify({ data: { instrumentKeys } }));
-      lastSentKeys.current = instrumentKeys;
-      console.log("📨 Sent subscription:", instrumentKeys);
-    }
-  };
+// const LiveLTPBatch = ({ stocks, updateLTPs, setMarketOpen }) => {
+//   const wsRef = useRef(null);
+//   const reconnectTimerRef = useRef(null);
+//   const lastSentKeys = useRef([]);
+//   const [connectionStatus, setConnectionStatus] = useState("disconnected");
 
-  const connectWebSocket = useCallback(() => {
-    const token = localStorage.getItem("access_token");
-    if (!token) return;
+//   const getInstrumentKeys = useCallback(() => {
+//     return stocks
+//       .map((s) => s.instrument_key || s.instrumentKey)
+//       .filter(Boolean)
+//       .sort();
+//   }, [stocks]);
 
-    const socket = new WebSocket(
-      `${REACT_APP_WS_URL}/ws/market?token=${token}`
-    );
-    wsRef.current = socket;
+//   const sendSubscription = (instrumentKeys) => {
+//     if (
+//       wsRef.current &&
+//       wsRef.current.readyState === WebSocket.OPEN &&
+//       instrumentKeys.length
+//     ) {
+//       const payload = {
+//         data: { instrumentKeys },
+//       };
+//       wsRef.current.send(JSON.stringify(payload));
+//       console.log("✅ Sent instrumentKeys to backend:", instrumentKeys);
+//       lastSentKeys.current = instrumentKeys;
+//     }
+//   };
 
-    socket.onopen = () => {
-      setConnectionStatus("connected");
-      const keys = getInstrumentKeys();
-      sendSubscription(keys);
-    };
+//   const connectWebSocket = useCallback(() => {
+//     const token = localStorage.getItem("access_token");
 
-    socket.onmessage = async (event) => {
-      const raw =
-        typeof event.data === "string" ? event.data : await event.data.text();
-      const message = JSON.parse(raw);
+//     if (!token) {
+//       console.error("⛔ No access token found.");
+//       setConnectionStatus("error");
+//       return;
+//     }
 
-      if (message.error) {
-        setConnectionStatus("error");
-        console.error("❌ Server Error:", message.error);
-        return;
-      }
+//     const socket = new WebSocket(
+//       `${REACT_APP_WS_URL}/ws/market?token=${token}`
+//     );
+//     wsRef.current = socket;
 
-      if (message.status === "connected") {
-        console.log("✅ WebSocket Handshake OK");
-        return;
-      }
+//     socket.onopen = () => {
+//       console.log("🔌 WebSocket connected");
+//       setConnectionStatus("connected");
+//       sendSubscription(getInstrumentKeys());
+//     };
 
-      if (message.event === "market_closed") {
-        setConnectionStatus("closed");
-        socket.close();
-        return;
-      }
+//     socket.onmessage = async (event) => {
+//       const raw =
+//         typeof event.data === "string" ? event.data : await event.data.text();
 
-      if (message.instrument_key && message.data) {
-        updateLTPs({
-          [message.instrument_key]: message.data,
-        });
-      }
-    };
+//       let message;
+//       try {
+//         message = JSON.parse(raw);
+//       } catch (err) {
+//         console.warn("🔍 Invalid JSON message:", raw);
+//         return;
+//       }
 
-    socket.onclose = () => {
-      setConnectionStatus("disconnected");
-    };
-  }, [getInstrumentKeys, updateLTPs]);
+//       if (message?.error) {
+//         console.error("❌ WebSocket error:", message.error);
+//         setConnectionStatus("error");
 
-  // 👉 Open only once
-  useEffect(() => {
-    connectWebSocket();
-    return () => wsRef.current?.close();
-  }, [connectWebSocket]);
+//         if (message.error.toLowerCase().includes("expired")) {
+//           alert("Session expired. Please login again.");
+//           localStorage.removeItem("access_token");
+//         }
 
-  // 👉 Detect new stock additions
-  useEffect(() => {
-    const currentKeys = getInstrumentKeys();
-    const diffKeys = currentKeys.filter(
-      (key) => !lastSentKeys.current.includes(key)
-    );
-    if (diffKeys.length > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
-      sendSubscription(currentKeys);
-    }
-  }, [stocks, getInstrumentKeys]);
+//         socket.close();
+//         return;
+//       }
 
-  return (
-    <div>
-      <strong>Status:</strong>{" "}
-      <span className={connectionStatus}>{connectionStatus}</span>
-    </div>
-  );
-};
+//       if (message?.event === "market_closed") {
+//         console.warn("📴 Market closed by backend.");
+//         setConnectionStatus("closed");
+//         setMarketOpen(false);
+//         socket.close();
+//         return;
+//       }
 
-export default LiveLTPBatch;
+//       if (message?.type === "ltp_update" && message.data?.instrumentKey) {
+//         updateLTPs({ [message.data.instrumentKey]: message.data });
+//       }
+//     };
+
+//     socket.onerror = (err) => {
+//       console.error("⚠️ WebSocket error:", err);
+//       setConnectionStatus("error");
+//     };
+
+//     socket.onclose = () => {
+//       console.warn("🔌 WebSocket disconnected");
+//       setConnectionStatus("disconnected");
+
+//       // ❌ Don't reconnect if market is closed
+//       if (connectionStatus !== "closed") {
+//         reconnectTimerRef.current = setTimeout(() => {
+//           console.log("♻️ Reconnecting WebSocket...");
+//           connectWebSocket();
+//         }, 3000);
+//       }
+//     };
+//   }, [getInstrumentKeys, updateLTPs, setMarketOpen, connectionStatus]);
+
+//   useEffect(() => {
+//     connectWebSocket();
+
+//     return () => {
+//       clearTimeout(reconnectTimerRef.current);
+//       wsRef.current?.close();
+//     };
+//   }, [connectWebSocket]);
+
+//   useEffect(() => {
+//     const keys = getInstrumentKeys();
+//     const hasChanged =
+//       JSON.stringify(keys) !== JSON.stringify(lastSentKeys.current);
+
+//     if (hasChanged && wsRef.current?.readyState === WebSocket.OPEN) {
+//       sendSubscription(keys);
+//     }
+//   }, [stocks, getInstrumentKeys]);
+
+//   return (
+//     <div style={{ marginTop: 10 }}>
+//       <small>
+//         <strong>WS Status:</strong>{" "}
+//         <span
+//           style={{
+//             color:
+//               connectionStatus === "connected"
+//                 ? "green"
+//                 : connectionStatus === "closed"
+//                 ? "orange"
+//                 : "red",
+//           }}
+//         >
+//           {connectionStatus === "connected"
+//             ? "Live"
+//             : connectionStatus === "closed"
+//             ? "Market Closed"
+//             : "Disconnected"}
+//         </span>
+//       </small>
+//     </div>
+//   );
+// };
+
+// export default LiveLTPBatch;

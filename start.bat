@@ -7,9 +7,6 @@ alembic upgrade head || (
     exit /b 1
 )
 
-echo  Loading Upstox Instruments...
-python -m scripts.load_upstox_instruments
-
 echo Setting Debug Mode...
 set DEBUG=True
 

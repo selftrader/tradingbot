@@ -1,14 +1,16 @@
-import React, { useContext } from "react";
-import { IconButton } from "@mui/material";
+// src/components/Landing/ThemeToggle.jsx
+import React from "react";
+import { IconButton, useTheme } from "@mui/material";
 import { Brightness4, Brightness7 } from "@mui/icons-material";
-import { ThemeContext } from "../../context/ThemeContext";
+import { useColorMode } from "../../themes/ThemeProviderWrapper";
 
 const ThemeToggle = () => {
-  const { isDarkMode, toggleTheme } = useContext(ThemeContext);
+  const theme = useTheme();
+  const colorMode = useColorMode();
 
   return (
-    <IconButton onClick={toggleTheme} color="inherit">
-      {isDarkMode ? <Brightness7 /> : <Brightness4 />}
+    <IconButton onClick={colorMode.toggleColorMode} color="inherit">
+      {theme.palette.mode === "dark" ? <Brightness7 /> : <Brightness4 />}
     </IconButton>
   );
 };

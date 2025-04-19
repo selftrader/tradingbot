@@ -26,17 +26,20 @@ const HeroSection = () => {
       >
         AI-Powered Trading Bot.
       </Typography>
-      <Typography
-        variant="h5"
-        sx={{ color: "#fff", mt: 2, opacity: 0.8 }}
-      >
+      <Typography variant="h5" sx={{ color: "#fff", mt: 2, opacity: 0.8 }}>
         Execute trades with precision and speed.
       </Typography>
       <Box sx={{ mt: 4, display: "flex", gap: 2 }}>
-        <Button variant="outlined" sx={{ borderColor: "#ff00ff", color: "#ff00ff" }}>
+        <Button
+          variant="outlined"
+          sx={{ borderColor: "#ff00ff", color: "#ff00ff" }}
+        >
           Get Started
         </Button>
-        <Button variant="outlined" sx={{ borderColor: "#8a2be2", color: "#8a2be2" }}>
+        <Button
+          variant="outlined"
+          sx={{ borderColor: "#8a2be2", color: "#8a2be2" }}
+        >
           Explore
         </Button>
       </Box>

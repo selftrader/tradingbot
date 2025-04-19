@@ -1,4 +1,5 @@
 import os
+import pytz
 import requests
 from urllib.parse import urlencode
 from datetime import datetime, time, timedelta
@@ -46,7 +47,7 @@ def exchange_upstox_token(code: str, api_key: str, api_secret: str) -> dict:
     }
 
 
-def generate_upstox_auth_url(api_key: str,user_id: int) -> str:
+def generate_upstox_auth_url(api_key: str, user_id: int) -> str:
     params = {
         "response_type": "code",
         "client_id": api_key,
@@ -55,14 +56,15 @@ def generate_upstox_auth_url(api_key: str,user_id: int) -> str:
     }
     return f"{UPSTOX_BASE_URL}/login/authorization/dialog?{urlencode(params)}"
 
-def exchange_code_for_token(code: str,api_key: str, api_secret: str):
+
+def exchange_code_for_token(code: str, api_key: str, api_secret: str):
     url = f"{UPSTOX_BASE_URL}/login/authorization/token"
     payload = {
         "code": code,
         "client_id": api_key,
         "client_secret": api_secret,
         "redirect_uri": UPSTOX_REDIRECT_URI,
-        "grant_type": "authorization_code"
+        "grant_type": "authorization_code",
     }
 
     headers = {"Content-Type": "application/x-www-form-urlencoded"}

@@ -1,23 +1,28 @@
 # Import necessary modules
 import asyncio
+from datetime import datetime
 import json
+from pathlib import Path
 import ssl
+import websockets.connection
+import logging
 import websockets
 import requests
 from google.protobuf.json_format import MessageToDict
-
 import MarketDataFeed_pb2 as pb
+
+logger = logging.getLogger("ws_relay")
 
 
 def get_market_data_feed_authorize_v3():
     """Get authorization for market data feed."""
-    access_token = 'eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiIzREM5RTIiLCJqdGkiOiI2N2U2NjAxMGZmM2RhYTQzYWQ4MzBkN2EiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaWF0IjoxNzQzMTUxMTIwLCJpc3MiOiJ1ZGFwaS1nYXRld2F5LXNlcnZpY2UiLCJleHAiOjE3NDMxOTkyMDB9.q9ziUVikKB72SS839J4vfV3lntzuOGMpm7x-8I7XOPw'
-    headers = {
-        'Accept': 'application/json',
-        'Authorization': f'Bearer {access_token}'
-    }
-    url = 'https://api.upstox.com/v3/feed/market-data-feed/authorize'
+    access_token = "eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiIzREM5RTIiLCJqdGkiOiI2ODAwOGZmYjhlZWRjMDFkYjkzZDE2NTAiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaWF0IjoxNzQ0ODY3MzIzLCJpc3MiOiJ1ZGFwaS1nYXRld2F5LXNlcnZpY2UiLCJleHAiOjE3NDQ5MjcyMDB9.ocJIMfwMTIrWZhBSsMtFxaY6KRiMXwn4PzYzuFa_a8w"
+    headers = {"Accept": "application/json", "Authorization": f"Bearer {access_token}"}
+    url = "https://api.upstox.com/v3/feed/market-data-feed/authorize"
     api_response = requests.get(url=url, headers=headers)
+    print("Response:", api_response.status_code, api_response.text)
+    if api_response.status_code != 200:
+        print("Failed to authorize market data feed")
     return api_response.json()
 
 
@@ -37,10 +42,23 @@ async def fetch_market_data():
     ssl_context.verify_mode = ssl.CERT_NONE
 
     # Get market data feed authorization
-    response = get_market_data_feed_authorize_v3()
+    authorize_response = get_market_data_feed_authorize_v3()
+    print("Authorize Response:", authorize_response)
+    if authorize_response["status"] != "success":
+        print("Failed to authorize market data feed", authorize_response["errors"])
+        if "errors" in authorize_response:
+            for error in authorize_response["errors"]:
+                print("Error:", error)
+            else:
+                print("No errors found in authorization response")
+
+        return
+    # response = get_market_data_feed_authorize_v3()
     # Connect to the WebSocket with SSL context
-    async with websockets.connect(response["data"]["authorized_redirect_uri"], ssl=ssl_context) as websocket:
-        print('Connection established')
+    async with websockets.connect(
+        authorize_response["data"]["authorized_redirect_uri"], ssl=ssl_context
+    ) as websocket:
+        print("Connection established")
 
         await asyncio.sleep(1)  # Wait for 1 second
 
@@ -50,12 +68,12 @@ async def fetch_market_data():
             "method": "sub",
             "data": {
                 "mode": "full",
-                "instrumentKeys": ["NSE_INDEX|Nifty Bank", "NSE_INDEX|Nifty 50"]
-            }
+                "instrumentKeys": ["NSE_INDEX|Nifty 50"],
+            },
         }
 
         # Convert data to binary and send over WebSocket
-        binary_data = json.dumps(data).encode('utf-8')
+        binary_data = json.dumps(data).encode("utf-8")
         await websocket.send(binary_data)
 
         # Continuously receive and decode data from WebSocket
@@ -68,6 +86,117 @@ async def fetch_market_data():
 
             # Print the dictionary representation
             print(json.dumps(data_dict))
+
+
+def get_default_instrument_keys():
+    from collections import defaultdict
+
+    top_stocks_path = Path("data/top_stocks.json")
+    instrument_path = Path("data/upstox_instruments.json")
+
+    if not top_stocks_path.exists() or not instrument_path.exists():
+        logger.error("❌ Missing required JSON files for instrument keys.")
+        return []
+
+    try:
+        with open(top_stocks_path, "r", encoding="utf-8") as f:
+            top_stocks = json.load(f).get("securities", [])
+
+        with open(instrument_path, "r", encoding="utf-8") as f:
+            all_instruments = json.load(f)
+    except Exception as e:
+        logger.error(f"❌ Failed to load instrument key files: {e}")
+        return []
+
+    now = datetime.now()
+    instrument_keys = set()
+
+    # ✅ Pre-index instruments by (exchange, symbol)
+    indexed = defaultdict(list)
+    for instr in all_instruments:
+        if not instr.get("instrument_key"):
+            continue
+
+        expiry = instr.get("expiry")
+        if expiry and datetime.fromtimestamp(expiry / 1000) < now:
+            continue
+
+        exchange = instr.get("exchange", "").upper()
+        for field in ("trading_symbol", "asset_symbol", "underlying_symbol"):
+            symbol = instr.get(field, "").upper()
+            if symbol:
+                indexed[(exchange, symbol)].append(instr)
+
+    def normalize_type(t):
+        return (t or "").strip().upper()
+
+    for stock in top_stocks:
+        symbol = stock.get("symbol", "").strip().upper()
+        exchange = stock.get("exchange", "").strip().upper()
+
+        if not symbol or not exchange:
+            continue
+
+        # ✅ Handle optional aliases
+        symbol_aliases = [symbol]
+        if symbol == "CRUDEOIL":
+            symbol_aliases.append("CRUDEOILM")
+        elif symbol == "GOLD":
+            symbol_aliases.append("GOLDM")
+
+        # ✅ Collect all matches
+        all_matches = []
+        for alias in symbol_aliases:
+            all_matches.extend(indexed.get((exchange, alias), []))
+
+        if not all_matches:
+            logger.error(f"⚠️ No instruments found for {symbol} on {exchange}")
+            continue
+
+        # ✅ Group by type
+        instrument_types = {
+            "EQ": [],
+            "INDEX": [],
+            "FUT": [],
+            "CE": [],
+            "PE": [],
+        }
+
+        for m in all_matches:
+            t = normalize_type(m.get("instrument_type"))
+            if t in instrument_types:
+                instrument_types[t].append(m)
+
+        # ✅ Add EQ/INDEX/FUT always
+        for t in ["EQ", "INDEX", "FUT"]:
+            for m in instrument_types[t]:
+                instrument_keys.add(m["instrument_key"])
+
+        # ✅ For CE/PE, calculate spot LTP
+        all_options = instrument_types["CE"] + instrument_types["PE"]
+
+        spot_ltp = None
+        for m in instrument_types["EQ"] + instrument_types["INDEX"]:
+            spot_ltp = m.get("last_price") or m.get("close_price")
+            if spot_ltp:
+                break
+
+        if not spot_ltp:
+            strikes = [
+                m.get("strike_price") for m in all_options if m.get("strike_price")
+            ]
+            if strikes:
+                spot_ltp = sum(strikes) / len(strikes)
+
+        if spot_ltp:
+            for opt in all_options:
+                strike = opt.get("strike_price") or 0
+                if abs(strike - spot_ltp) <= 20:
+                    instrument_keys.add(opt["instrument_key"])
+
+    logger.info(f"✅ Final instrument keys resolved: {len(instrument_keys)}")
+    return list("NSE_FO|108985")
+    # return list(instrument_keys)
 
 
 # Execute the function to fetch market data
