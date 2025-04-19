@@ -1,30 +1,39 @@
-import React, { createContext, useState, useEffect } from "react";
-import { ThemeProvider } from "@mui/material/styles";
-import { lightTheme, darkTheme } from "../theme/themeConfig";
+import { createContext, useContext, useMemo, useState } from "react";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
 
-export const ThemeContext = createContext();
+const ThemeModeContext = createContext();
 
-const ThemeProviderWrapper = ({ children }) => {
-  // ✅ Load saved theme from localStorage
-  const [isDarkMode, setIsDarkMode] = useState(
-    localStorage.getItem("theme") === "dark"
-  );
-
-  useEffect(() => {
-    localStorage.setItem("theme", isDarkMode ? "dark" : "light");
-  }, [isDarkMode]); // ✅ Save theme mode when it changes
+export const CustomThemeProvider = ({ children }) => {
+  const [mode, setMode] = useState("dark");
 
   const toggleTheme = () => {
-    setIsDarkMode((prev) => !prev);
+    setMode((prev) => (prev === "light" ? "dark" : "light"));
   };
 
+  const theme = useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode,
+          ...(mode === "dark"
+            ? {
+                background: { default: "#0d1117", paper: "#161b22" },
+                text: { primary: "#fff", secondary: "#aaa" },
+              }
+            : {
+                background: { default: "#f5f5f5", paper: "#fff" },
+                text: { primary: "#000", secondary: "#555" },
+              }),
+        },
+      }),
+    [mode]
+  );
+
   return (
-    <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
-      <ThemeProvider theme={isDarkMode ? darkTheme : lightTheme}>
-        {children}
-      </ThemeProvider>
-    </ThemeContext.Provider>
+    <ThemeModeContext.Provider value={{ mode, toggleTheme }}>
+      <ThemeProvider theme={theme}>{children}</ThemeProvider>
+    </ThemeModeContext.Provider>
   );
 };
 
-export default ThemeProviderWrapper;
+export const useThemeMode = () => useContext(ThemeModeContext);

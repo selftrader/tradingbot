@@ -1,55 +1,79 @@
-from typing import Dict, List
-from fastapi import WebSocket
+import asyncio
+import json
+import ssl
+import websockets
+from google.protobuf.json_format import MessageToDict
+import proto.market_data_pb2 as pb
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("stock_logger")
 
 
-class UpstoxWebSocketManager:
+class UpstoxWebSocketClient:
     def __init__(self):
-        self.connections: Dict[str, List[WebSocket]] = {}
-        self.instrument_subscriptions: Dict[WebSocket, List[str]] = {}
+        self.running = False
+        self.access_token = None
+        self.ws = None
+        self.instrument_keys = []
 
-    async def connect(
-        self, user_email: str, websocket: WebSocket, instrument_keys: List[str]
-    ):
-        if user_email not in self.connections:
-            self.connections[user_email] = []
-        self.connections[user_email].append(websocket)
-        self.instrument_subscriptions[websocket] = instrument_keys
-        logger.info(f"📲 Connection added for {user_email}")
+    def set_token(self, token: str):
+        self.access_token = token
 
-    async def disconnect(self, user_email: str, websocket: WebSocket):
-        if user_email in self.connections:
-            self.connections[user_email] = [
-                ws for ws in self.connections[user_email] if ws != websocket
-            ]
-            if not self.connections[user_email]:
-                del self.connections[user_email]
-        if websocket in self.instrument_subscriptions:
-            del self.instrument_subscriptions[websocket]
-        logger.info(f"🔌 Disconnected {user_email}")
+    def get_feed_url(self):
+        import requests
 
-    def has_active_connection(self, user_email: str) -> bool:
-        return user_email in self.connections and len(self.connections[user_email]) > 0
+        headers = {"Authorization": f"Bearer {self.access_token}"}
+        res = requests.get(
+            "https://api.upstox.com/v3/feed/market-data-feed/authorize", headers=headers
+        )
+        return res.json()["data"]["authorized_redirect_uri"]
 
-    async def broadcast_feed(self, user_email: str, message: bytes):
-        text_message = message.decode()
-        connections = self.connections.get(user_email, [])
-        disconnected = []
+    async def start_feed(self, instrument_keys):
+        if self.running:
+            return
+        self.running = True
+        self.instrument_keys = instrument_keys
 
-        for ws in connections:
+        try:
+            url = self.get_feed_url()
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+
+            async with websockets.connect(url, ssl=ssl_context) as websocket:
+                self.ws = websocket
+                logger.info("📡 Upstox WebSocket connected")
+
+                payload = {
+                    "guid": "dashboard-feed",
+                    "method": "sub",
+                    "data": {"mode": "full", "instrumentKeys": self.instrument_keys},
+                }
+
+                await websocket.send(json.dumps(payload).encode("utf-8"))
+
+                while True:
+                    message = await websocket.recv()
+                    decoded = pb.FeedResponse()
+                    decoded.ParseFromString(message)
+                    data = MessageToDict(decoded)
+                    await self.broadcast(data)
+
+        except Exception as e:
+            self.running = False
+            logger.error(f"❌ Feed error: {e}")
+
+    # Broadcast to connected UI clients
+    async def broadcast(self, data):
+        for client in self.clients.copy():
             try:
-                await ws.send_text(text_message)
-            except Exception as e:
-                logger.error(f"❌ Error sending message to {user_email}: {e}")
-                disconnected.append(ws)
+                await client.send_json({"type": "live_feed", "data": data})
+            except Exception:
+                self.clients.remove(client)
 
-        for ws in disconnected:
-            await self.disconnect(user_email, ws)
+    # WebSocket clients list (injected by market_ws.py)
+    clients = []
 
-    def get_active_connections_count(self) -> int:
-        return sum(len(conn_list) for conn_list in self.connections.values())
 
-    def get_subscribed_instruments_count(self) -> int:
-        return sum(len(keys) for keys in self.instrument_subscriptions.values())
+# Singleton instance
+upstox_ws_client = UpstoxWebSocketClient()

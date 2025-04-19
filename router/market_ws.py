@@ -1,135 +1,231 @@
-from fastapi import Depends, WebSocket, WebSocketDisconnect, APIRouter
-from sqlalchemy.orm import Session
-from database.connection import get_db
-from database.models import User
-from services.auth_service import get_current_user
-from services.upstox.ws_feed_v3 import UpstoxWebSocketClient
-from services.upstox.ws_manager import UpstoxWebSocketManager
 import asyncio
+import json
 import logging
+from datetime import datetime
+from pathlib import Path
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from jwt.exceptions import ExpiredSignatureError, DecodeError
+from services.auth_service import get_current_user
+from services.upstox.ws_client import UpstoxWebSocketClient
+from database.connection import get_db
+from database.models import BrokerConfig
 
-logger = logging.getLogger(__name__)
-market_ws_router = APIRouter()
-ws_manager = UpstoxWebSocketManager()
+logger = logging.getLogger("market_ws")
+router = APIRouter()
 
-active_clients: dict[str, UpstoxWebSocketClient] = {}
+clients = {}
+ws_clients = {}
+market_status = {}
+received_ltp_flag = {}
+
+MAX_CHUNKS = 2
+CHUNK_SIZE = 1500
 
 
-@market_ws_router.websocket("/ws/market")
-async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)):
-    await websocket.accept()
-    logger.info("📥 New WebSocket connection")
+@router.websocket("/ws/market")
+async def market_data_websocket(websocket: WebSocket):
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.accept()
+        await websocket.send_json({"type": "error", "reason": "missing_token"})
+        await websocket.close()
+        return
 
-    user = None
-    instrument_keys = []
+    logger.info(f"📥 WebSocket request received: {token}")
 
     try:
-        token = websocket.query_params.get("token")
-        if not token:
-            await websocket.send_json({"error": "Missing access token"})
-            await websocket.close()
-            return
-
-        user: User = get_current_user(token, db)
-        if not user:
-            await websocket.send_json({"error": "Invalid token"})
-            await websocket.close()
-            return
-
-        upstox_config = next(
-            (b for b in user.broker_configs if b.broker_name.lower() == "upstox"), None
-        )
-        if not upstox_config or not upstox_config.access_token:
-            await websocket.send_json({"error": "Upstox not linked"})
-            await websocket.close()
-            return
-
-        first_sub = await websocket.receive_json()
-        instrument_keys = first_sub.get("data", {}).get("instrumentKeys", [])
-        if not instrument_keys:
-            await websocket.send_json({"error": "No instrument keys provided"})
-            await websocket.close()
-            return
-
-        await ws_manager.connect(user.email, websocket, instrument_keys)
-
-        if user.email not in active_clients:
-            client = UpstoxWebSocketClient(ws_manager)
-            active_clients[user.email] = client
-            asyncio.create_task(
-                client.start(user_email=user.email, instrument_keys=instrument_keys)
-            )
-            logger.info(f"✅ Upstox client started for user {user.email}")
-        else:
-            client = active_clients[user.email]
-            new_keys = list(set(instrument_keys) - set(client.instrument_keys))
-            if new_keys:
-                await client.subscribe_to_new_instruments(new_keys)
-                logger.info(f"🆕 Added new instruments for {user.email}: {new_keys}")
-
-        await websocket.send_json(
-            {"status": "connected", "message": "Market feed connected"}
-        )
-
-        async def subscription_listener():
-            nonlocal instrument_keys
-            try:
-                while True:
-                    message = await websocket.receive_json()
-                    if "data" in message and "instrumentKeys" in message["data"]:
-                        new_keys = message["data"]["instrumentKeys"]
-                        current_keys_set = set(instrument_keys)
-                        new_keys_set = set(new_keys)
-
-                        if not new_keys_set.issubset(current_keys_set):
-                            to_add = list(new_keys_set - current_keys_set)
-                            instrument_keys = list(current_keys_set.union(new_keys_set))
-                            if user.email in active_clients:
-                                await active_clients[
-                                    user.email
-                                ].subscribe_to_new_instruments(to_add)
-                                logger.info(f"➕ Subscribed new keys: {to_add}")
-            except WebSocketDisconnect:
-                logger.info("🔌 WebSocket closed in subscription listener")
-            except Exception as e:
-                logger.warning(f"⚠️ Error in dynamic subscription: {e}")
-
-        async def ping_listener():
-            try:
-                while True:
-                    text = await websocket.receive_text()
-                    if text.strip().lower() == "ping":
-                        await websocket.send_text("pong")
-            except WebSocketDisconnect:
-                logger.info("🔌 WebSocket closed in ping listener")
-            except Exception as e:
-                logger.warning(f"⚠️ Message loop error: {e}")
-
-        await asyncio.gather(subscription_listener(), ping_listener())
-
-    except WebSocketDisconnect:
-        logger.info("🔌 WebSocket disconnected")
-    except Exception as e:
-        logger.error(f"❌ Unexpected WebSocket error: {str(e)}")
+        db = next(get_db())
         try:
-            await websocket.send_json({"error": str(e)})
-        except:
-            pass
+            user = get_current_user(token=token, db=db)
+        except ExpiredSignatureError:
+            await websocket.accept()
+            await notify_token_expired(token)
+            return
+        except DecodeError:
+            await websocket.accept()
+            await websocket.send_json({"type": "error", "reason": "token_invalid"})
+            await websocket.close()
+            return
+
+        broker = (
+            db.query(BrokerConfig)
+            .filter(
+                BrokerConfig.user_id == user.id,
+                BrokerConfig.broker_name.ilike("upstox"),
+            )
+            .first()
+        )
+
+        if not broker or not broker.access_token:
+            await websocket.accept()
+            await websocket.send_json({"type": "error", "reason": "upstox_not_linked"})
+            await websocket.close()
+            return
+
+        instrument_keys = load_today_instrument_keys()
+        if not instrument_keys:
+            await websocket.accept()
+            await websocket.send_json({"type": "error", "reason": "no_instruments"})
+            await websocket.close()
+            return
+
+        # Accept WebSocket connection before any await that can raise errors
+        await websocket.accept()
+
+        # Cleanup any stale state
+        await cleanup_connection(token)
+        clients[token] = websocket
+        ws_clients[token] = []
+
+        logger.info(f"✅ WebSocket accepted: {token}")
+
+        # Split into two 1500-key chunks max
+        chunks = [
+            instrument_keys[i : i + CHUNK_SIZE]
+            for i in range(
+                0, min(len(instrument_keys), MAX_CHUNKS * CHUNK_SIZE), CHUNK_SIZE
+            )
+        ]
+
+        for chunk in chunks:
+            client = UpstoxWebSocketClient(
+                access_token=broker.access_token,
+                instrument_keys=chunk,
+                callback=lambda data: asyncio.create_task(broadcast(token, data)),
+                stop_callback=lambda: logger.info("🛑 One WS stream stopped."),
+                on_auth_error=lambda: asyncio.create_task(
+                    handle_auth_failure_and_close(token)
+                ),
+            )
+            ws_clients[token].append(client)
+            asyncio.create_task(client.connect_and_stream())
+
+        # Main receive loop
+        while token in clients:
+            try:
+                await asyncio.wait_for(websocket.receive_text(), timeout=60)
+            except (WebSocketDisconnect, asyncio.TimeoutError):
+                logger.info(f"❎ WebSocket timeout/disconnect for {token}")
+                break
+            except RuntimeError as e:
+                logger.warning(f"⚠️ WebSocket RuntimeError: {e}")
+                break
+
     finally:
-        if user:
-            await ws_manager.disconnect(user.email, websocket)
-            if (
-                not ws_manager.has_active_connection(user.email)
-                and user.email in active_clients
+        await cleanup_connection(token)
+
+
+async def broadcast(token: str, data: dict):
+    ws = clients.get(token)
+    if not ws:
+        logger.warning(f"⚠️ No WebSocket client to broadcast to {token}")
+        return
+
+    try:
+        if data.get("type") == "market_info":
+            status = data.get("status", "").lower()
+            market_status[token] = status
+            await ws.send_json({"type": "market_info", "marketStatus": status})
+
+            if status in ["normal_close", "closing_end"] and received_ltp_flag.get(
+                token
             ):
-                active_clients[user.email].stop()
-                del active_clients[user.email]
-                logger.info(f"🧹 Cleaned up WebSocket client for {user.email}")
+                await cleanup_connection(token)
+
+        elif data.get("type") == "live_feed":
+            payload = data["data"]
+            if not isinstance(payload, dict):
+                return
+            parsed = parse_live_feed(payload)
+            received_ltp_flag[token] = True
+            await ws.send_json(
+                {
+                    "type": "live_feed",
+                    "data": parsed,
+                    "market_open": market_status.get(token) == "open",
+                }
+            )
+
+            if market_status.get(token) in ["normal_close", "closing_end"]:
+                await asyncio.sleep(1)
+                await cleanup_connection(token)
+
+    except Exception as e:
+        logger.error(f"❌ Broadcast error for {token}: {e}")
 
 
-@market_ws_router.get("/market/connections")
-async def get_connection_stats():
-    return {
-        "active_connections": ws_manager.get_active_connections_count(),
-        "subscribed_instruments": ws_manager.get_subscribed_instruments_count(),
-    }
+async def handle_auth_failure_and_close(token: str):
+    logger.warning(f"🔐 Auth failed for {token}")
+    await notify_token_expired(token)
+    await cleanup_connection(token)
+
+
+async def notify_token_expired(token: str):
+    ws = clients.get(token)
+    if ws:
+        try:
+            await ws.send_json({"type": "error", "reason": "token_expired"})
+        except Exception:
+            pass
+    await cleanup_connection(token)
+
+
+async def cleanup_connection(token: str):
+    logger.info(f"🧹 Cleaning up for {token}")
+
+    ws = clients.pop(token, None)
+    if ws:
+        try:
+            if ws.client_state.name != "DISCONNECTED":
+                await ws.close()
+        except Exception:
+            pass
+
+    for client in ws_clients.pop(token, []):
+        if client:
+            client.stop()
+
+    market_status.pop(token, None)
+    received_ltp_flag.pop(token, None)
+
+
+def parse_live_feed(raw_data: dict):
+    parsed = {}
+    for instrument_key, details in raw_data.items():
+        try:
+            feed = details.get("fullFeed", {}).get("marketFF", {})
+            ltpc = feed.get("ltpc", {})
+            parsed[instrument_key] = {
+                "ltp": ltpc.get("ltp"),
+                "ltq": ltpc.get("ltq"),
+                "cp": ltpc.get("cp"),
+                "last_trade_time": ltpc.get("ltt"),
+                "bid_ask": feed.get("marketLevel", {}).get("bidAskQuote", []),
+                "greeks": feed.get("optionGreeks", {}),
+                "ohlc": feed.get("marketOHLC", {}).get("ohlc", []),
+                "atp": feed.get("atp"),
+                "oi": feed.get("oi"),
+                "iv": feed.get("iv"),
+                "tbq": feed.get("tbq"),
+                "tsq": feed.get("tsq"),
+            }
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to parse tick for {instrument_key}: {e}")
+    return parsed
+
+
+def load_today_instrument_keys():
+    file_path = Path("data/today_instrument_keys.json")
+    if not file_path.exists():
+        return []
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = json.load(f)
+            if isinstance(content, list):
+                return content
+            elif isinstance(content, dict):
+                if content.get("timestamp") == datetime.now().strftime("%Y-%m-%d"):
+                    return content.get("keys", [])
+    except Exception as e:
+        logger.warning(f"❌ Failed to load instrument keys: {e}")
+    return []

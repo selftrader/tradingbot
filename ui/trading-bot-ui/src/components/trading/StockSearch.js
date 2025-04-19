@@ -7,7 +7,10 @@ import {
   Autocomplete,
   CircularProgress,
 } from "@mui/material";
-import { fetchStockList,resolveStockDetails } from "../../services/marketDataService";
+import {
+  fetchStockList,
+  resolveStockDetails,
+} from "../../services/marketDataService";
 
 const StockSearch = ({ onSearch }) => {
   const [exchange, setExchange] = useState("NSE");
@@ -32,10 +35,13 @@ const StockSearch = ({ onSearch }) => {
 
   const handleSearch = async () => {
     if (!selectedStock || !selectedStock.symbol) return;
-  
+
     try {
-      const fullStock = await resolveStockDetails(selectedStock.symbol, exchange);
-  
+      const fullStock = await resolveStockDetails(
+        selectedStock.symbol,
+        exchange
+      );
+
       if (fullStock) {
         onSearch(fullStock); // Pass enriched stock object
         setSelectedStock(null);
@@ -79,7 +85,9 @@ const StockSearch = ({ onSearch }) => {
         <Autocomplete
           options={stockOptions}
           getOptionLabel={(option) =>
-            `${option.symbol} - ${option.name || ""} (${option.instrument_type || ""})`
+            `${option.symbol} - ${option.name || ""} (${
+              option.instrument_type || ""
+            })`
           }
           value={selectedStock}
           onChange={(event, newValue) => setSelectedStock(newValue)}

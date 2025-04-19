@@ -1,217 +1,260 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  Container,
+  Box,
   Typography,
+  Modal,
   Button,
-  Grid,
-  Paper,
-  IconButton,
+  Alert,
+  TextField,
+  useTheme,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { Settings, PlayArrow, Stop, Delete } from "@mui/icons-material";
-import StockSearch from "../components/trading/StockSearch";
-import TradeSettingsModal from "../components/trading/TradeSettingsModal";
-import LiveLTPBatch from "../components/trading/LiveLTPBatch";
-const DashboardPage = () => {
-  const [selectedStocks, setSelectedStocks] = useState([]);
-  const [tradeSettingsOpen, setTradeSettingsOpen] = useState(false);
-  const [selectedStockForSettings, setSelectedStockForSettings] =
-    useState(null);
-  const [trading, setTrading] = useState(false);
+import { useMarket } from "../context/MarketProvider";
 
-  const selectedStocksRef = useRef([]);
+const DashboardPage = () => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+
+  const navigate = useNavigate();
+  const { groupedStocks, ltps, marketStatus, tokenExpired } = useMarket();
+  const [processedRows, setProcessedRows] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const spotStocks = useMemo(() => {
+    return Object.entries(groupedStocks)
+      .map(([symbol, stock]) => {
+        const spot = stock?.spot;
+        if (!spot?.instrument_key) return null;
+
+        const key = spot.instrument_key.toUpperCase();
+        const feed = ltps[key] || {};
+        const ltp = feed.ltp ?? null;
+        const cp = feed.cp ?? null;
+        const ltq = feed.ltq ?? null;
+
+        const change =
+          ltp != null && cp != null && cp !== 0
+            ? ((ltp - cp) / cp) * 100
+            : null;
+
+        return {
+          id: key,
+          symbol: spot.symbol,
+          name: spot.display_name || spot.name,
+          exchange: spot.exchange,
+          instrument_key: key,
+          ltp,
+          cp,
+          change,
+          volume: ltq,
+        };
+      })
+      .filter(Boolean);
+  }, [groupedStocks, ltps]);
+
+  const filteredRows = useMemo(() => {
+    return spotStocks.filter(
+      (s) =>
+        s.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [spotStocks, searchQuery]);
 
   useEffect(() => {
-    selectedStocksRef.current = selectedStocks;
-  }, [selectedStocks]);
+    setProcessedRows(filteredRows);
+  }, [filteredRows]);
 
-  // ✅ WebSocket callback to update market data
-  const updateLTPs = (ltpMap) => {
-    setSelectedStocks((prevStocks) =>
-      prevStocks.map((stock) => ({
-        ...stock,
-        livePrice: ltpMap[stock.instrumentKey]?.ltp ?? stock.livePrice,
-        volume: ltpMap[stock.instrumentKey]?.volume ?? stock.volume,
-        avgPrice: ltpMap[stock.instrumentKey]?.avg_price ?? stock.avgPrice,
-        lastUpdate: ltpMap[stock.instrumentKey]?.timestamp
-          ? new Date(ltpMap[stock.instrumentKey].timestamp).getTime()
-          : stock.lastUpdate,
-      }))
-    );
+  const handleRowClick = (params) => {
+    const symbol = params.row.symbol;
+    navigate(`/option-chain/${symbol}`);
   };
 
-  // ✅ Handle Stock Selection
-  const handleStockSelect = (stockData) => {
-    const alreadyAdded = selectedStocks.some(
-      (s) => s.symbol === stockData.symbol && s.exchange === stockData.exchange
-    );
-    if (alreadyAdded) {
-      alert("Stock already added.");
-      return;
-    }
+  const formatCell =
+    (decimals = 2, suffix = "") =>
+    (params) =>
+      params.value != null && !isNaN(params.value)
+        ? `${Number(params.value).toFixed(decimals)}${suffix}`
+        : "–";
 
-    const newStock = {
-      id: `${stockData.exchange}_${stockData.symbol}`,
-      name: stockData.name,
-      symbol: stockData.symbol,
-      exchange: stockData.exchange,
-      instrument: stockData.instrument,
-      instrumentKey: stockData.instrumentKey,
-      segment: stockData.segment,
-      lotSize: stockData.lot_size,
-      tickSize: stockData.tick_size,
-      livePrice: 0,
-      volume: 0,
-      avgPrice: 0,
-      lastUpdate: null,
-      buying: 0,
-      selling: 0,
-      amount: 0,
-      status: "Not Started",
-      profitLoss: 0,
-    };
-
-    setSelectedStocks((prev) => [...prev, newStock]);
+  const handleNameClick = (symbol) => {
+    navigate(`/option-chain/${symbol}`);
   };
-
-  const handleRemoveStock = (id) => {
-    setSelectedStocks((prev) => prev.filter((stock) => stock.id !== id));
-  };
-
-  const openTradeSettings = (stock) => {
-    setSelectedStockForSettings(stock);
-    setTradeSettingsOpen(true);
-  };
-
-  const handleStartTrade = () => setTrading(true);
-  const handleStopTrade = () => setTrading(false);
 
   const columns = [
-    { field: "name", headerName: "Stock Name", width: 180 },
-    { field: "symbol", headerName: "Symbol", width: 120 },
-    { field: "exchange", headerName: "Exchange", width: 100 },
-    { field: "instrumentKey", headerName: "Instrument", width: 120 },
+    { field: "symbol", headerName: "Symbol", flex: 1 },
     {
-      field: "livePrice",
-      headerName: "Live Price (₹)",
-      width: 140,
+      field: "name",
+      headerName: "Name",
+      flex: 1.5,
       renderCell: (params) => (
-        <Typography variant="body2">
-          ₹{params.row.livePrice || "Loading..."}
-        </Typography>
+        <span
+          onClick={() => handleNameClick(params.row.symbol)}
+          style={{
+            color: "#1976d2",
+            cursor: "pointer",
+            textDecoration: "underline",
+          }}
+        >
+          {params.row.name}
+        </span>
       ),
+    },
+    { field: "exchange", headerName: "Exchange", flex: 1 },
+    {
+      field: "ltp",
+      headerName: "LTP",
+      flex: 1,
+      type: "number",
+      renderCell: formatCell(2),
+    },
+    {
+      field: "cp",
+      headerName: "Close Price",
+      flex: 1,
+      type: "number",
+      renderCell: formatCell(2),
+    },
+    {
+      field: "change",
+      headerName: "% Change",
+      flex: 1,
+      type: "number",
+      renderCell: (params) =>
+        params.value != null && !isNaN(params.value)
+          ? `${params.value.toFixed(2)}%`
+          : "–",
+      cellClassName: (params) =>
+        params?.value > 0
+          ? "positive-change"
+          : params?.value < 0
+          ? "negative-change"
+          : "",
     },
     {
       field: "volume",
       headerName: "Volume",
-      width: 120,
-      renderCell: (params) => (
-        <Typography variant="body2">
-          {params.row.volume?.toLocaleString() || "-"}
-        </Typography>
-      ),
-    },
-    {
-      field: "avgPrice",
-      headerName: "Avg Price (₹)",
-      width: 140,
-      renderCell: (params) => (
-        <Typography variant="body2">₹{params.row.avgPrice || "-"}</Typography>
-      ),
-    },
-    {
-      field: "lastUpdate",
-      headerName: "Last Update",
-      width: 180,
-      renderCell: (params) => (
-        <Typography variant="body2">
-          {params.row.lastUpdate
-            ? new Date(params.row.lastUpdate).toLocaleTimeString()
-            : "-"}
-        </Typography>
-      ),
-    },
-    { field: "status", headerName: "Status", width: 130 },
-    {
-      field: "settings",
-      headerName: "Settings",
-      width: 90,
-      renderCell: (params) => (
-        <IconButton onClick={() => openTradeSettings(params.row)}>
-          <Settings />
-        </IconButton>
-      ),
-    },
-    {
-      field: "remove",
-      headerName: "Remove",
-      width: 80,
-      renderCell: (params) => (
-        <IconButton onClick={() => handleRemoveStock(params.row.id)}>
-          <Delete />
-        </IconButton>
-      ),
+      flex: 1,
+      type: "number",
+      renderCell: (params) =>
+        params.value != null && !isNaN(params.value)
+          ? Number(params.value).toLocaleString("en-IN")
+          : "–",
     },
   ];
 
   return (
-    <Container>
-      {/* <Typography variant="h4" fontWeight="bold" color="primary" gutterBottom>
-        Algo Trading Dashboard
-      </Typography> */}
+    <Box sx={{ padding: 3 }}>
+      <Typography
+        variant="h4"
+        gutterBottom
+        sx={{ color: theme.palette.text.primary }}
+      >
+        Market Status:{" "}
+        <strong style={{ color: marketStatus === "open" ? "green" : "red" }}>
+          {marketStatus === "open"
+            ? "Open ✅"
+            : marketStatus === "loading"
+            ? "Loading..."
+            : "Closed"}
+        </strong>
+      </Typography>
 
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={8}>
-          <StockSearch onSearch={handleStockSelect} />
-        </Grid>
-        <Grid item xs={6} sm={2}>
-          <Button
-            fullWidth
-            variant="contained"
-            color="success"
-            onClick={handleStartTrade}
-            disabled={trading}
-            startIcon={<PlayArrow />}
-          >
-            Start
-          </Button>
-        </Grid>
-        <Grid item xs={6} sm={2}>
-          <Button
-            fullWidth
-            variant="contained"
-            color="error"
-            onClick={handleStopTrade}
-            disabled={!trading}
-            startIcon={<Stop />}
-          >
-            Stop
-          </Button>
-        </Grid>
-      </Grid>
-
-      <Paper sx={{ mt: 4, height: 430, padding: 2 }}>
-        <DataGrid
-          rows={selectedStocks}
-          columns={columns}
-          getRowId={(row) => row.id}
-          disableRowSelectionOnClick
-        />
-      </Paper>
-
-      {/* ✅ Live LTP WebSocket Hook */}
-      <LiveLTPBatch stocks={selectedStocks} updateLTPs={updateLTPs} />
-
-      {/* ✅ Trade Settings Modal */}
-      {tradeSettingsOpen && (
-        <TradeSettingsModal
-          open={tradeSettingsOpen}
-          onClose={() => setTradeSettingsOpen(false)}
-          stock={selectedStockForSettings}
-          setSelectedStocks={setSelectedStocks}
-        />
+      {marketStatus === "closed" && (
+        <Alert
+          severity="info"
+          sx={{
+            mb: 2,
+            bgcolor: isDark ? "#263238" : undefined,
+            color: isDark ? "#fff" : undefined,
+          }}
+        >
+          Market is currently closed. Live feed has been paused. You can still
+          view stock data based on your last fetched snapshot.
+        </Alert>
       )}
-    </Container>
+
+      <TextField
+        fullWidth
+        variant="outlined"
+        size="small"
+        placeholder="🔍 Search by symbol or name"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        sx={{
+          mb: 2,
+          input: { color: theme.palette.text.primary },
+          "& .MuiOutlinedInput-root": {
+            backgroundColor: isDark ? "#1e1e1e" : "#fff",
+            "& fieldset": {
+              borderColor: isDark ? "#444" : "#ccc",
+            },
+          },
+        }}
+      />
+
+      <Box
+        sx={{
+          height: 620,
+          backgroundColor: isDark ? "#121212" : "#fff",
+          color: isDark ? "#fff" : "#000",
+          borderRadius: 2,
+          "& .MuiDataGrid-root": {
+            border: "none",
+          },
+          "& .MuiDataGrid-cell": {
+            color: isDark ? "#fff" : "#000",
+          },
+          "& .MuiDataGrid-columnHeaders": {
+            backgroundColor: isDark ? "#1e1e1e" : "#f5f5f5",
+            color: isDark ? "#fff" : "#000",
+            fontWeight: "bold",
+          },
+          "& .positive-change": { color: "#00C853", fontWeight: 600 },
+          "& .negative-change": { color: "#EF5350", fontWeight: 600 },
+        }}
+      >
+        <DataGrid
+          rows={processedRows}
+          columns={columns}
+          pageSize={15}
+          rowsPerPageOptions={[10, 15, 25, 50]}
+          getRowId={(row) => row.id}
+          onRowClick={handleRowClick}
+          disableSelectionOnClick
+        />
+      </Box>
+
+      <Modal open={tokenExpired} onClose={() => {}}>
+        <Box
+          sx={{
+            width: 400,
+            mx: "auto",
+            my: "20%",
+            p: 4,
+            bgcolor: "white",
+            boxShadow: 24,
+            borderRadius: 2,
+          }}
+        >
+          <Typography variant="h6" gutterBottom>
+            Token Expired
+          </Typography>
+          <Typography variant="body2" gutterBottom>
+            Your token has expired. Please go to the <strong>Config</strong> tab
+            to reauthorize and resume live data.
+          </Typography>
+          <Button
+            variant="contained"
+            fullWidth
+            sx={{ mt: 2 }}
+            onClick={() => (window.location.href = "/config")}
+          >
+            Go to Config
+          </Button>
+        </Box>
+      </Modal>
+    </Box>
   );
 };
 
